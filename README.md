@@ -141,6 +141,11 @@ STA thread; every external dependency (rig, cluster, WSJT-X, solar) has a
 simulator behind the same interface. See `SPEC.md` and `PLAN.md` for the full
 specification and heritage analysis.
 
+## Roadmap
+
+Proposed next-release features, prioritised by operator value, live in
+[ROADMAP.md](ROADMAP.md) — comments and issues welcome.
+
 ## Credits
 
 Functional heritage: Alex Shovkoplyas VE3NEA's outstanding freeware
