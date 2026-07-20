@@ -38,6 +38,7 @@ class CtyDatabase:
         self.prefix_map: dict[str, int] = {}   # prefix -> entity index
         self.exact_map: dict[str, int] = {}    # exact callsign -> entity index
         self._cache: dict[str, Entity | None] = {}
+        self.source = ""                       # file the database was loaded from
 
     @classmethod
     def from_file(cls, path: Path) -> "CtyDatabase":
@@ -136,5 +137,6 @@ def load_database(data_dir: Path, bundled_dir: Path, offline: bool) -> CtyDataba
             print(f"[dxcc] cty.dat download failed ({exc}); using bundled subset")
     src = cached if cached.exists() else bundled_dir / "cty_builtin.dat"
     db = CtyDatabase.from_file(src)
+    db.source = src.name
     print(f"[dxcc] {len(db.entities)} entities from {src.name}")
     return db

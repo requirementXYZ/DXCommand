@@ -81,6 +81,11 @@ Prerequisites for live operation:
 3. **Split** — click a CW spot whose comment says `UP …`: radio should go split with
    TX offset shown in the orange SPLIT tag. Click an FT8 spot: split clears, mode DATA.
 4. **Cluster** — chip `CLUSTER ●` green and spots streaming within ~30 s of start.
+   You must set your **real callsign** first — cluster nodes reject `N0CALL`
+   (the dashboard shows a clear "rejected callsign" status if so). The client
+   automatically sends `SET/SKIMMER`, `SET/FT8`, `SET/FT4` after login so
+   RBN/CW-skimmer and FT8 spots flow on CC Cluster nodes like VE7CC
+   (configurable via `cluster.init_commands` in config.json).
 5. **Needed flags** — Import ADIF (top right) with your log export; worked slots lose
    their ★, "Needed only" filter shows the rest.
 6. **WSJT-X** — with WSJT-X decoding, decodes appear in the right panel; double-click
@@ -111,8 +116,9 @@ Tip: point `cluster.host` at a local instance of VE3NEA's
 [PskrDxClusterService](https://github.com/VE3NEA/PskrDxClusterService)
 (`localhost:7309`) for a very dense FT8 spot feed from PSK Reporter.
 
-- `data/cty.dat` — full AD1C country file, auto-downloaded on first online start
-  (bundled subset used offline). Delete the file to force a refresh.
+- `data/cty.dat` — full AD1C country file, downloaded automatically the first time
+  the app runs an online configuration (including immediately when you SAVE & APPLY
+  one in ⚙ SETUP). A bundled subset is used offline. Delete the file to force a refresh.
 - `data/worked.json` — your worked-slot state (rebuilt any time from ADIF import).
 - `data/dxpeditions.json` — optional: maintain your own DXpedition list here.
 

@@ -22,6 +22,7 @@ DEFAULTS: dict = {
         "host": "dxc.ve7cc.net",
         "port": 23,
         "keep_modes": ["CW", "FT8", "FT4"],
+        "init_commands": ["SET/SKIMMER", "SET/FT8", "SET/FT4"],
         "simulate": False,
     },
     "wsjtx": {"enabled": True, "udp_port": 2237, "simulate": False},

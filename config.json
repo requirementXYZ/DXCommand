@@ -3,10 +3,35 @@
   "grid": "FN31pr",
   "port": 8073,
   "demo_mode": false,
-  "rig": { "backend": "omnirig", "rig_number": 1, "poll_ms": 300 },
-  "cluster": { "host": "dxc.ve7cc.net", "port": 23, "keep_modes": ["CW", "FT8", "FT4"], "simulate": false },
-  "wsjtx": { "enabled": true, "udp_port": 2237, "simulate": false },
-  "spots": { "max_age_min": 30, "max_count": 2000 },
+  "rig": {
+    "backend": "simulator",
+    "rig_number": 1,
+    "poll_ms": 300
+  },
+  "cluster": {
+    "host": "dxc.ve7cc.net",
+    "port": 23,
+    "keep_modes": [
+      "CW",
+      "FT8",
+      "FT4"
+    ],
+    "init_commands": [
+      "SET/SKIMMER",
+      "SET/FT8",
+      "SET/FT4"
+    ],
+    "simulate": false
+  },
+  "wsjtx": {
+    "enabled": true,
+    "udp_port": 2237,
+    "simulate": true
+  },
+  "spots": {
+    "max_age_min": 30,
+    "max_count": 2000
+  },
   "watch_list": [],
   "offline": false
 }

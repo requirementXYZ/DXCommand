@@ -140,6 +140,18 @@ def on_wsjtx_qso(q: QsoLogged) -> None:
 
 
 # ------------------------------------------------------- service management
+async def refresh_cty() -> None:
+    """If we're online but still running on the bundled prefix subset,
+    download the full cty.dat now and swap it in — no restart needed."""
+    global cty
+    if cfg.offline or cty.source == "cty.dat":
+        return
+    new_db = await asyncio.to_thread(load_database, DATA_DIR, BUNDLED_DIR, False)
+    if new_db.source == "cty.dat":
+        cty = new_db
+        tracker.cty = new_db
+
+
 async def start_rig() -> None:
     global rig
     if rig:
@@ -164,7 +176,8 @@ async def start_spot_source() -> None:
         spot_source = SpotSimulator(on_spot, on_cluster_status)
     else:
         spot_source = ClusterClient(cfg["cluster"]["host"], cfg["cluster"]["port"],
-                                    cfg.callsign, on_spot, on_cluster_status)
+                                    cfg.callsign, on_spot, on_cluster_status,
+                                    cfg["cluster"].get("init_commands"))
     spot_source.start()
 
 
@@ -318,14 +331,17 @@ async def api_config_set(req: Request):
         cfg.raw["demo_mode"] = False
         HOME_LAT, HOME_LON = grid_to_latlon(cfg.grid)
         save_config(cfg.raw)
+        await refresh_cty()          # pull the full country list if now online
         await start_rig()
         await start_spot_source()
         await start_solar()
         await start_wsjtx()
+        asyncio.create_task(publish_dxped(), name="dxped-refresh")
         for s in store.all():
             enrich(s)
         publish_app_info()
-    return {"ok": True, "config": cfg.raw}
+    return {"ok": True, "config": cfg.raw,
+            "cty": {"entities": len(cty.entities), "source": cty.source}}
 
 
 @app.post("/api/adif")

@@ -65,9 +65,14 @@ const Settings = {
         toast(`Settings rejected: ${res.error || "unknown error"}`, "alert");
         return;
       }
-      toast(body.rig.backend === "omnirig"
+      const cty = res.cty && res.cty.source === "cty.dat"
+        ? ` · country list: ${res.cty.entities} entities` : "";
+      toast((body.rig.backend === "omnirig"
         ? `Applied — OmniRig Rig ${body.rig.rig_number} active`
-        : "Applied — demo (simulated rig) active");
+        : "Applied — demo (simulated rig) active") + cty);
+      if (!body.cluster.simulate && body.callsign === "N0CALL") {
+        toast("⚠ DX clusters reject the N0CALL placeholder — enter your real callsign in SETUP", "alert");
+      }
       Settings.close();
       // Fresh sources mean fresh spots/decodes; reload keeps every panel consistent.
       setTimeout(() => location.reload(), 900);

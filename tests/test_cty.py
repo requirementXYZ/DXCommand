@@ -66,6 +66,14 @@ def test_longitude_sign(db):
     assert k.lon < -60
 
 
+def test_load_database_offline_uses_bundled_and_records_source(tmp_path):
+    from app.config import BUNDLED_DIR
+    from app.dxcc.cty import load_database
+    db = load_database(tmp_path, BUNDLED_DIR, offline=True)
+    assert db.source == "cty_builtin.dat"
+    assert len(db.entities) > 80
+
+
 def test_bearing_distance():
     az, dist = bearing_distance(41.7, -72.7, 36.4, 138.4)  # CT USA -> Japan
     assert 320 <= az <= 350
