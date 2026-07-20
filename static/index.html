@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DX Command</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">DX<span>COMMAND</span></div>
+  <div class="clock" id="utc-clock">--:--:--<small>UTC</small></div>
+  <div class="chips">
+    <div class="chip" id="chip-rig" title="Rig status">RIG</div>
+    <div class="chip" id="chip-cluster" title="DX cluster">CLUSTER</div>
+    <div class="chip" id="chip-wsjtx" title="WSJT-X UDP">WSJT-X</div>
+  </div>
+  <div class="solar-mini" id="solar-mini" title="Solar data">
+    <b>SFI</b><span id="sfi">--</span>
+    <b>SSN</b><span id="ssn">--</span>
+    <b>A</b><span id="a-idx">--</span>
+    <b>K</b><span id="k-idx">--</span>
+  </div>
+  <div class="grow"></div>
+  <button class="btn" id="btn-help" title="Quick start guide">?&nbsp;HELP</button>
+  <button class="btn" id="btn-settings" title="Station setup: switch demo / OmniRig, cluster, WSJT-X">⚙&nbsp;SETUP</button>
+  <button class="btn" id="btn-cw-trainer" title="CW pileup trainer (Morse Runner heritage)">CW&nbsp;TRAINER</button>
+  <label class="btn" title="Import your log (ADIF) to highlight needed DXCC">
+    IMPORT&nbsp;ADIF<input type="file" id="adif-file" accept=".adi,.adif,.txt" hidden>
+  </label>
+  <div class="me"><span id="my-call">-</span><small id="my-grid">-</small><em id="demo-badge" hidden>DEMO</em></div>
+</header>
+
+<main id="layout">
+  <!-- left column -->
+  <aside id="col-left">
+    <section class="panel" id="rig-panel">
+      <h3>RIG <span id="rig-label" class="dim"></span>
+        <span class="info" data-tip="Live state of your radio via OmniRig (or the built-in simulator — see ⚙ SETUP). Click any spot, beacon or band-map marker to tune. Band buttons jump to the CW segment; the orange SPLIT tag shows your TX offset when working a DXpedition split.">i</span></h3>
+      <div class="freq-display" id="freq-display" title="RX frequency">
+        <span id="freq-mhz">14.025</span><small id="freq-hz">000</small>
+      </div>
+      <div class="rig-row">
+        <span class="tag" id="rig-mode">CW</span>
+        <span class="tag split" id="rig-split" hidden>SPLIT <b id="split-offset"></b></span>
+        <span class="tag tx" id="rig-tx" hidden>TX</span>
+      </div>
+      <div class="rig-row dim small" id="rig-status-text">starting…</div>
+      <div class="band-buttons" id="band-buttons"></div>
+      <div class="mode-buttons">
+        <button data-mode="CW">CW</button>
+        <button data-mode="DATA-U">FT8/DIG</button>
+        <button data-mode="USB">SSB</button>
+      </div>
+      <div class="qsy-row">
+        <input id="qsy-input" placeholder="QSY kHz e.g. 14023.5" spellcheck="false">
+        <button id="qsy-go">SET</button>
+      </div>
+    </section>
+
+    <section class="panel" id="beacon-panel">
+      <h3>NCDXF BEACONS <span class="dim">now transmitting</span>
+        <span class="info" data-tip="The NCDXF/IARU beacon network: 18 CW beacons around the world share 5 frequencies in a 3-minute cycle (10 s each). Which beacons you can hear tells you which paths are open right now. Click a row to tune there and listen.">i</span></h3>
+      <div id="beacon-list"></div>
+    </section>
+
+    <section class="panel" id="cond-panel">
+      <h3>BAND CONDITIONS <span class="dim" id="solar-src"></span>
+        <span class="info" data-tip="Solar-terrestrial indices (SFI, sunspots, A/K, X-ray) and estimated day/night HF conditions, refreshed every 30 minutes from hamqsl.com (N0NBH). High SFI + low K = good high-band DX.">i</span></h3>
+      <table id="cond-table"></table>
+      <div class="small dim" id="solar-extra"></div>
+    </section>
+
+    <section class="panel" id="dxped-panel">
+      <h3>DXPEDITIONS <span class="dim" id="dxped-src"></span>
+        <span class="info" data-tip="Current and announced DXpeditions (NG3K ADXO when online). Click an entry to add its callsign to your watch list — you'll get an alert the moment it is spotted or decoded.">i</span></h3>
+      <div id="dxped-list"></div>
+    </section>
+  </aside>
+
+  <!-- band map -->
+  <section id="bandmap-wrap">
+    <div id="bandmap-title">20m <span class="info" data-tip="Band map: every spot on this band on a frequency ladder. Orange shading = CW segment, blue = FT8/FT4 window, green arrow = your rig. Click a callsign to tune (mode &amp; split set automatically); click empty space to QSY there. The band follows your rig.">i</span></div>
+    <canvas id="bandmap"></canvas>
+  </section>
+
+  <!-- spots -->
+  <section id="col-spots">
+    <div id="filter-bar">
+      <div class="fgroup" id="filter-bands"></div>
+      <div class="fgroup" id="filter-modes">
+        <button class="fbtn mode-cw active" data-mode="CW">CW</button>
+        <button class="fbtn mode-ft8 active" data-mode="FT8">FT8</button>
+        <button class="fbtn mode-ft4 active" data-mode="FT4">FT4</button>
+        <button class="fbtn" data-mode="OTHER">Other</button>
+      </div>
+      <button class="fbtn needed" id="filter-needed">★ Needed only</button>
+      <input id="filter-search" placeholder="filter call / country…" spellcheck="false">
+      <span class="dim small" id="spot-count"></span>
+      <span class="info" data-tip="DX cluster spots, newest first — click a row to tune your rig (split is set automatically from comments like 'UP 2' or 'QSX 14023.5'). Colours: red ★ = all-time new DXCC, orange ★ = new band, yellow ★ = new mode, purple stripe = watch list. Import your ADIF log (top right) so the ★ flags match YOUR log. Filters: band chips, mode chips, ★ Needed only, or type to search.">i</span>
+    </div>
+    <div id="spot-table-wrap">
+      <table id="spot-table">
+        <thead><tr>
+          <th>UTC</th><th class="r">kHz</th><th>DX</th><th>Mode</th>
+          <th>Country</th><th class="r">Az°</th><th>Comment</th><th class="r">Age</th>
+        </tr></thead>
+        <tbody id="spot-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- right column -->
+  <aside id="col-right">
+    <section class="panel grow-panel" id="ft8-panel">
+      <h3>FT8 / WSJT-X <span class="dim" id="wsjtx-dial"></span>
+        <span class="info" data-tip="Live mirror of WSJT-X decodes (UDP port 2237). Green = CQ; red/orange = a DXCC entity you still need; purple = watch list. Double-click a decode and WSJT-X will set that station as DX and reply. In demo mode this shows simulated Fox/Hound traffic.">i</span></h3>
+      <div class="small dim" id="wsjtx-hint">double-click a decode to reply in WSJT-X</div>
+      <div id="ft8-list"></div>
+    </section>
+    <section class="panel" id="watch-panel">
+      <h3>WATCH LIST <span class="dim">alerts on these calls</span>
+        <span class="info" data-tip="Callsigns you are hunting (e.g. the DXpedition of the moment). Matching spots and FT8 decodes are highlighted purple and raise a pop-up alert, and they bypass the CW/FT8 mode filter so you never miss one.">i</span></h3>
+      <div id="watch-list"></div>
+      <div class="qsy-row">
+        <input id="watch-input" placeholder="add callsign…" spellcheck="false">
+        <button id="watch-add">ADD</button>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<!-- world map -->
+<section id="map-section">
+  <div id="map-head">
+    <h3>WORLD / GRAY LINE
+      <span class="info" data-tip="Live day/night map — the shaded side is in darkness and the boundary is the gray line, where low-band DX signals often peak. Dots = active spots (colour = mode or needed-status), ★ = your QTH, green diamonds = NCDXF beacons, ☀ = the sun. Click any marker for details — spots and beacons can be tuned straight from the popup, and clicking a spot draws the great-circle path with azimuth and distance.">i</span></h3>
+    <span class="dim small" id="map-info"></span>
+    <div class="grow"></div>
+    <button class="btn small-btn" id="map-toggle">hide</button>
+  </div>
+  <canvas id="worldmap"></canvas>
+</section>
+
+<!-- CW trainer overlay -->
+<div id="cw-overlay" hidden>
+  <div id="cw-box">
+    <div id="cw-head">
+      <h3>CW PILEUP TRAINER
+        <span class="info" data-tip="Practice pulling callsigns out of a pileup before you face the real one. Press START and 1-4 stations call you at once, each with its own pitch, speed and strength. Type a callsign you copied and press Enter — correct copies get a 'TU' and fresh callers; misses replay the pileup. AGN? repeats it any time. Runs entirely in your browser.">i</span></h3>
+      <span class="dim small">Morse Runner, reborn</span>
+      <div class="grow"></div><button class="btn small-btn" id="cw-close">✕ close</button>
+    </div>
+    <div id="cw-controls">
+      <label>Stations <select id="cw-stations"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+      <label>Speed <select id="cw-speed"><option value="22">22-26 wpm</option><option value="28" selected>28-32 wpm</option><option value="34">34-38 wpm</option></select></label>
+      <button class="btn" id="cw-start">▶ START</button>
+      <button class="btn" id="cw-repeat" disabled>AGN?</button>
+    </div>
+    <div id="cw-score"><span>Copied <b id="cw-ok">0</b></span><span>Missed <b id="cw-bad">0</b></span><span>Streak <b id="cw-streak">0</b></span></div>
+    <input id="cw-input" placeholder="type the callsign you hear + Enter" autocomplete="off" spellcheck="false" disabled>
+    <div id="cw-log" class="small"></div>
+  </div>
+</div>
+
+<!-- Quick start / help overlay -->
+<div id="help-overlay" hidden>
+  <div id="help-box">
+    <div id="help-head">
+      <h3>📡 DX COMMAND — QUICK START</h3>
+      <div class="grow"></div>
+      <button class="btn small-btn" id="help-close">✕ close</button>
+    </div>
+    <div id="help-body">
+      <p><b>What is this?</b> DX Command is a dashboard for CW (Morse) and FT8 operators
+      chasing rare DX and DXpeditions. It gathers DX-cluster spots, WSJT-X decodes,
+      propagation data and beacon schedules in one place — and one click tunes your radio
+      (via <a href="https://dxatlas.com/omnirig/" target="_blank">OmniRig</a>, which supports
+      most transceivers) to the right frequency, mode <i>and split</i>.
+      It modernizes the classic VE3NEA / DX Atlas tools: Band Master, Morse Runner, Faros and friends.</p>
+
+      <h4>First five minutes</h4>
+      <ol>
+        <li><b>Try it with no radio:</b> everything you see in demo mode is simulated —
+            a Bouvet DXpedition pileup on CW and FT8. Click spots, watch the rig panel follow.</li>
+        <li><b>Click a spot</b> in the table or band map. The rig tunes, the mode is set, and if
+            the comment says <code>UP 2</code> the TX split is set too. The world map draws the path.</li>
+        <li><b>Import your log</b> (⬆ IMPORT ADIF, top right). Now the red/orange/yellow ★ flags mean
+            <i>you actually need that one</i>: new DXCC / new band / new mode.</li>
+        <li><b>Watch your target:</b> click a DXpedition in the left panel (or add a call in
+            WATCH LIST). You'll get an alert whenever it appears — on any mode.</li>
+        <li><b>Go live:</b> open ⚙ SETUP and switch the radio to OmniRig, spots to a real
+            cluster, FT8 to WSJT-X. Changes apply instantly and are remembered.</li>
+      </ol>
+
+      <h4>Reading the colours</h4>
+      <ul class="legend">
+        <li><span class="lg atno"></span> Red — all-time new DXCC entity (ATNO)</li>
+        <li><span class="lg nband"></span> Orange — entity worked, but new on this band</li>
+        <li><span class="lg nmode"></span> Yellow — band worked, but new on this mode</li>
+        <li><span class="lg watch"></span> Purple — watch-list callsign</li>
+        <li><span class="lg cw"></span> CW spot &nbsp;/&nbsp; <span class="lg ft8"></span> FT8/FT4 spot</li>
+      </ul>
+
+      <h4>Panels</h4>
+      <p class="small">Every panel has a small <span class="info-demo">i</span> icon — hover or click
+      it for what that panel does and how to use it. The NCDXF beacon clock doubles as a live
+      propagation check: click a beacon and listen. The CW TRAINER (top right) is a Morse Runner-style
+      pileup simulator for practising before the real thing.</p>
+
+      <p class="small dim">Demo vs live: <code>run_demo.bat</code> always starts fully simulated;
+      <code>run.bat</code> starts with whatever you saved in ⚙ SETUP. Full docs in README.md.</p>
+    </div>
+    <div class="set-actions">
+      <label class="small dim"><input type="checkbox" id="help-noshow"> don't show this on startup</label>
+      <div class="grow"></div>
+      <button class="btn" id="help-ok">GOT IT — SHOW ME DX</button>
+    </div>
+  </div>
+</div>
+
+<!-- Station setup overlay -->
+<div id="settings-overlay" hidden>
+  <div id="settings-box">
+    <div id="settings-head">
+      <h3>STATION SETUP</h3>
+      <span class="dim small">changes apply immediately &amp; persist to config.json</span>
+      <div class="grow"></div>
+      <button class="btn small-btn" id="settings-close">✕ close</button>
+    </div>
+
+    <div class="set-presets">
+      <button class="btn" id="preset-demo" title="Simulated rig + spots + FT8 (no hardware)">🧪 ALL DEMO</button>
+      <button class="btn" id="preset-live" title="OmniRig + real cluster + WSJT-X">📡 ALL LIVE</button>
+    </div>
+
+    <div class="set-grid">
+      <label class="set-field">Callsign
+        <input id="set-call" placeholder="N0CALL" spellcheck="false">
+      </label>
+      <label class="set-field">Grid square
+        <input id="set-grid" placeholder="FN31pr" spellcheck="false">
+      </label>
+
+      <label class="set-field wide">Radio
+        <select id="set-rig">
+          <option value="simulator">Demo — simulated rig (no hardware)</option>
+          <option value="omnirig1">OmniRig — Rig 1</option>
+          <option value="omnirig2">OmniRig — Rig 2</option>
+        </select>
+      </label>
+
+      <label class="set-field wide">DX spots
+        <select id="set-cluster">
+          <option value="sim">Demo — simulated DXpedition feed</option>
+          <option value="telnet">DX cluster (telnet)</option>
+        </select>
+      </label>
+      <label class="set-field">Cluster host
+        <input id="set-cluster-host" spellcheck="false">
+      </label>
+      <label class="set-field">Cluster port
+        <input id="set-cluster-port" type="number" min="1" max="65535">
+      </label>
+
+      <label class="set-field wide">FT8 decodes
+        <select id="set-wsjtx">
+          <option value="sim">Demo — simulated FT8 decodes</option>
+          <option value="udp">WSJT-X — listen on UDP</option>
+          <option value="off">Off</option>
+        </select>
+      </label>
+      <label class="set-field">WSJT-X UDP port
+        <input id="set-wsjtx-port" type="number" min="1" max="65535">
+      </label>
+    </div>
+
+    <div class="set-actions">
+      <span class="dim small" id="settings-note">OmniRig must be installed for live rig control (dxatlas.com/omnirig). Full country list downloads on next start when online.</span>
+      <div class="grow"></div>
+      <button class="btn" id="settings-save">💾 SAVE &amp; APPLY</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="js/util.js"></script>
+<script src="js/bandmap.js"></script>
+<script src="js/worldmap.js"></script>
+<script src="js/cwtrainer.js"></script>
+<script src="js/help.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

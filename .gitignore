@@ -1,0 +1,9 @@
+# runtime data (cty.dat cache, worked log, world map cache)
+data/
+__pycache__/
+.pytest_cache/
+*.pyc
+# local packaging output
+*.zip
+# local editor / assistant config
+.claude/

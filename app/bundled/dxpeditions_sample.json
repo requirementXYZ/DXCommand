@@ -1,0 +1,12 @@
+{
+  "source": "bundled sample (edit data/dxpeditions.json or go online for live NG3K data)",
+  "items": [
+    {"callsign": "3Y0K", "entity": "Bouvet Island", "start": "2026-07-10", "end": "2026-08-02", "bands": "160-10m", "modes": "CW FT8 SSB", "info": "Fox/Hound on FT8; CW split up 2"},
+    {"callsign": "VP8PIE", "entity": "Falkland Islands", "start": "2026-07-15", "end": "2026-07-29", "bands": "40-10m", "modes": "CW FT8", "info": "Holiday style"},
+    {"callsign": "VK9XCX", "entity": "Christmas Island", "start": "2026-07-18", "end": "2026-07-31", "bands": "80-10m", "modes": "CW FT8 FT4", "info": ""},
+    {"callsign": "A25RU", "entity": "Botswana", "start": "2026-07-05", "end": "2026-07-25", "bands": "160-10m", "modes": "CW FT8", "info": ""},
+    {"callsign": "E51DWC", "entity": "South Cook Islands", "start": "2026-06-28", "end": "2026-08-15", "bands": "40-10m", "modes": "CW FT8", "info": ""},
+    {"callsign": "TX7W", "entity": "French Polynesia", "start": "2026-08-03", "end": "2026-08-17", "bands": "80-10m", "modes": "CW SSB FT8", "info": "announced"},
+    {"callsign": "ZD7BG", "entity": "St. Helena", "start": "2026-07-01", "end": "2026-09-01", "bands": "20-10m", "modes": "CW FT8", "info": "resident op"}
+  ]
+}
