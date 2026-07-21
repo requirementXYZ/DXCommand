@@ -49,10 +49,14 @@ def _sanitize(text: str, password: str) -> str:
 
 def validate_report(text: str) -> None:
     head = text[:2000]
-    if re.search(r"password\s+(is\s+)?incorrect|invalid\s+(login|user)", head, re.I):
+    if re.search(r"password\s+(is\s+)?incorrect|invalid\s+(login|user)"
+                 r"|not\s+(a\s+)?registered|login\s+failed", head, re.I):
         raise LotwError("LoTW rejected the username/password")
-    if "<eoh>" not in text.lower() and "arrl" not in head.lower():
-        raise LotwError("unexpected response from LoTW (not an ADIF report)")
+    # A genuine report always contains an ADIF header terminator. Anything
+    # else (e.g. an HTML error page that merely mentions ARRL) is a failure.
+    if "<eoh>" not in text.lower():
+        raise LotwError("LoTW did not return an ADIF report - "
+                        "check the username/password")
 
 
 def fetch_report(username: str, password: str, qsl: bool,

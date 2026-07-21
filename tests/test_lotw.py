@@ -34,8 +34,12 @@ def test_validate_report():
     validate_report(WORKED_ADIF)                      # no raise
     with pytest.raises(LotwError, match="username/password"):
         validate_report("<html>Username/password incorrect</html>")
-    with pytest.raises(LotwError, match="not an ADIF"):
+    with pytest.raises(LotwError, match="ADIF"):
         validate_report("<html>totally unrelated page</html>")
+    # An error page that merely mentions ARRL must NOT pass (regression:
+    # bogus credentials looked like a successful 0-QSO sync)
+    with pytest.raises(LotwError, match="ADIF"):
+        validate_report("<html>ARRL Logbook of the World - something went wrong</html>")
 
 
 def test_password_never_leaks():

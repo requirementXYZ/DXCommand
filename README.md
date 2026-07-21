@@ -145,8 +145,13 @@ password (the same login every logging program uses for LoTW downloads) and
 press **⟳ SYNC NOW** — or tick *daily auto-sync*. Two reports are pulled from
 `lotw.arrl.org`: all QSOs you've uploaded (→ *worked*) and all QSLs received
 (→ *confirmed ✓✓*). Syncs are incremental after the first full download.
-Your credentials are stored in `config.json` **on your PC only** (plain text,
-the same approach as other logging software) and are never written to logs.
+Your LoTW password is **encrypted at rest with Windows DPAPI**, bound to your
+Windows user account: `config.json` stores only a `dpapi:` blob that cannot be
+decrypted on another machine or account, the server never sends the password
+back to the browser, and it is scrubbed from every error message. (A one-way
+hash is impossible here — the app must present the real password to
+`lotw.arrl.org` — so OS-level encryption is the correct protection.)
+Any plaintext password from an older version is migrated automatically on start.
 
 - `data/cty.dat` — full AD1C country file, downloaded automatically the first time
   the app runs an online configuration (including immediately when you SAVE & APPLY

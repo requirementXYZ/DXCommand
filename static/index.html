@@ -384,7 +384,7 @@
 
       <label class="set-field wide">
         <span>LoTW direct sync
-          <span class="info" data-tip="Pull your worked and confirmed QSOs straight from ARRL Logbook of the World — no ADIF export needed. Uses your LoTW website login (same credentials every logger uses). Syncs are incremental (since-dates remembered) and QSL records mark slots confirmed ✓✓. Credentials are stored in config.json on this PC only. SYNC NOW runs immediately; auto-sync repeats daily while enabled.">i</span></span>
+          <span class="info" data-tip="Pull your worked and confirmed QSOs straight from ARRL Logbook of the World — no ADIF export needed. Uses your LoTW website login (same credentials every logger uses). Syncs are incremental (since-dates remembered) and QSL records mark slots confirmed ✓✓. The password is encrypted at rest with Windows DPAPI, bound to your Windows account — config.json never contains it in plain text and it is never sent back to the browser. SYNC NOW runs immediately; auto-sync repeats daily while enabled.">i</span></span>
         <span class="lotw-row">
           <input id="set-lotw-user" placeholder="LoTW username" spellcheck="false" autocomplete="off">
           <input id="set-lotw-pass" type="password" placeholder="LoTW password" autocomplete="new-password">

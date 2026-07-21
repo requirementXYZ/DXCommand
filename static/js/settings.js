@@ -19,7 +19,9 @@ const Settings = {
       $("set-logsync").value = ((c.logsync || {}).paths || []).join("\n");
       const lotw = c.lotw || {};
       $("set-lotw-user").value = lotw.username || "";
-      $("set-lotw-pass").value = lotw.password || "";
+      $("set-lotw-pass").value = "";           // never echoed by the server
+      $("set-lotw-pass").placeholder = lotw.password_set
+        ? "•••••• stored (encrypted) — leave blank to keep" : "LoTW password";
       $("set-lotw-auto").checked = !!lotw.enabled;
       $("lotw-status").textContent = "";
       Settings.refreshEnabled();
@@ -53,11 +55,14 @@ const Settings = {
   },
 
   lotwBody() {
-    return {
+    const body = {
       enabled: $("set-lotw-auto").checked,
       username: $("set-lotw-user").value.trim(),
-      password: $("set-lotw-pass").value,
     };
+    // Only send a password when the user typed one; blank keeps the stored,
+    // DPAPI-encrypted value on the server.
+    if ($("set-lotw-pass").value) body.password = $("set-lotw-pass").value;
+    return body;
   },
 
   close() { $("settings-overlay").hidden = true; },

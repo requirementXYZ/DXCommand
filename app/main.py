@@ -23,6 +23,7 @@ from .config import (BUNDLED_DIR, DATA_DIR, STATIC_DIR, _merge, grid_to_latlon,
 from .dxcc.cty import bearing_distance, load_database
 from .dxcc.logsync import LogSync
 from .dxcc.lotw import LotwError, LotwSync
+from .secure import SecretError, is_protected, merge_secret, protect, reveal
 from .dxcc.tracker import NeededTracker
 from .dxped.calendar import load_dxpeditions
 from .propagation.beacons import transmitting_now
@@ -67,6 +68,22 @@ logsync_svc: LogSync | None = None
 lotw_sync = LotwSync(DATA_DIR / "lotw_state.json")
 _lotw_lock = asyncio.Lock()
 _config_lock = asyncio.Lock()
+
+# Migrate any plaintext LoTW password to a DPAPI-protected blob at startup.
+if cfg["lotw"].get("password") and not is_protected(cfg["lotw"]["password"]):
+    cfg.raw["lotw"]["password"] = protect(cfg["lotw"]["password"])
+    save_config(cfg.raw)
+    print("[secure] LoTW password encrypted at rest (DPAPI)")
+
+
+def public_config() -> dict:
+    """cfg.raw safe for the browser: never echo stored secrets."""
+    import copy as _copy
+    out = _copy.deepcopy(cfg.raw)
+    lotw = out.get("lotw", {})
+    lotw["password_set"] = bool(lotw.get("password"))
+    lotw["password"] = ""
+    return out
 
 
 def my_continent() -> str:
@@ -321,8 +338,12 @@ async def run_lotw_sync() -> dict:
     """Run a LoTW pull in a worker thread; refresh needed-flags on success."""
     async with _lotw_lock:
         lotw = cfg["lotw"]
+        try:
+            password = reveal(lotw.get("password", ""))
+        except SecretError as exc:
+            raise LotwError(str(exc)) from None
         result = await asyncio.to_thread(
-            lotw_sync.sync, lotw.get("username", ""), lotw.get("password", ""), tracker)
+            lotw_sync.sync, lotw.get("username", ""), password, tracker)
     on_log_imported("LoTW", {"qsos": result["worked_qsos"] + result["confirmed_qsls"],
                              "slots_added": result["slots_added"]})
     return result
@@ -448,7 +469,7 @@ async def api_rig():
 
 @app.get("/api/config")
 async def api_config_get():
-    return cfg.raw
+    return public_config()
 
 
 @app.post("/api/config")
@@ -465,6 +486,16 @@ async def api_config_set(req: Request):
             r"[A-Ra-r]{2}\d{2}([A-Xa-x]{2})?", str(patch["grid"]).strip()):
         return JSONResponse({"ok": False, "error": "grid must look like IO95 or IO95rj"},
                             status_code=400)
+    if "lotw" in patch and isinstance(patch["lotw"], dict):
+        # Blank/absent password keeps the stored one; new values are encrypted.
+        # Clearing the username clears the stored credential with it.
+        if patch["lotw"].get("username", "not-present") == "":
+            patch["lotw"]["password"] = ""
+        else:
+            patch["lotw"]["password"] = merge_secret(
+                cfg["lotw"].get("password", ""),
+                (patch["lotw"].get("password") or "").strip() or None)
+        patch["lotw"].pop("password_set", None)
     # Only service-affecting keys warrant restarting connections; alert or
     # log-sync tweaks must not drop the cluster/rig/WSJT-X links.
     service_keys = {"callsign", "grid", "rig", "cluster", "wsjtx", "rbn", "offline"}
@@ -487,7 +518,7 @@ async def api_config_set(req: Request):
             for s in store.all():
                 enrich(s)
         publish_app_info()
-    return {"ok": True, "config": cfg.raw,
+    return {"ok": True, "config": public_config(),
             "cty": {"entities": len(cty.entities), "source": cty.source}}
 
 
