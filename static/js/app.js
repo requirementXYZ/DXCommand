@@ -7,6 +7,7 @@ const state = {
              neededOnly: false, search: "" },
   watch: [],
   rig: null,
+  myCont: "NA",
 };
 
 const bus = new Bus();
@@ -136,6 +137,11 @@ function spotRow(s, fresh) {
   tr.className = (s.needed ? `needed-${s.needed} ` : "") +
                  (s.watched ? "watched " : "") + (fresh ? "fresh" : "");
   const star = { atno: "★ATNO", band: "★band", mode: "★mode" }[s.needed] || "";
+  const conts = s.heard_conts || [];
+  const heardHome = conts.includes(state.myCont);
+  const heardTitle = (s.spotters || []).map((sp) =>
+    `${sp.call}${sp.cont ? " (" + sp.cont + ")" : ""}${sp.snr != null ? " " + sp.snr + "dB" : ""}`
+  ).join(", ");
   tr.innerHTML =
     `<td class="dim">${utcHHMM(s.ts)}</td>` +
     `<td class="freq">${fmtFreqKhz(s.freq)}</td>` +
@@ -143,6 +149,8 @@ function spotRow(s, fresh) {
     `<td><span class="mchip ${esc(s.mode)}">${esc(s.mode)}</span></td>` +
     `<td>${esc(s.dxcc ? s.dxcc.name : "?")}</td>` +
     `<td class="r dim">${s.dxcc ? s.dxcc.azimuth : ""}</td>` +
+    `<td class="heard${heardHome ? " home" : ""}" title="${esc(heardTitle)}">` +
+    `${esc(conts.slice(0, 3).join("·"))}${s.snr != null ? " " + s.snr + "dB" : ""}</td>` +
     `<td class="dim">${esc(s.comment || "")}</td>` +
     `<td class="r dim">${fmtAge(Math.floor(Date.now() / 1000 - s.ts))}</td>`;
   tr.onclick = () => tuneSpot(s);
@@ -168,7 +176,33 @@ function renderSpots() {
     bandmap.setSpots(spots.filter(spotVisible));
     worldmap.spots = spots.filter(spotVisible);
     worldmap.draw();
+    renderOpenings(spots);
   }, 80);
+}
+
+/* Band openings: spot activity per band in the last 30 min, by DX continent */
+function renderOpenings(spots) {
+  const per = {};
+  for (const s of spots) {
+    if (!s.band) continue;
+    const p = (per[s.band] = per[s.band] || { n: 0, conts: new Set() });
+    p.n++;
+    if (s.dxcc) p.conts.add(s.dxcc.cont);
+  }
+  const strip = $("openings-strip");
+  strip.replaceChildren();
+  for (const b of BANDS_UI) {
+    const p = per[b];
+    const chip = document.createElement("span");
+    chip.className = "open-chip" + (p ? " hot" : "") +
+      (state.filters.bands.has(b) ? " filtered" : "");
+    chip.innerHTML = p ? `${b} <b>${p.n}</b> ${[...p.conts].sort().join("·")}` : b;
+    chip.onclick = () => {
+      const target = document.querySelector(`#filter-bands .fbtn[data-band="${b}"]`);
+      if (target) target.click();
+    };
+    strip.appendChild(chip);
+  }
 }
 
 bus.on("spot", (s) => {
@@ -199,7 +233,15 @@ bus.on("app_info", (info) => {
   $("demo-badge").hidden = !info.demo;
   worldmap.home = { ...info.home, call: info.callsign, grid: info.grid };
   state.watch = info.watch_list;
+  state.myCont = info.my_continent || "NA";
+  Alerts.applyConfig(info.alerts);
   renderWatch();
+});
+bus.on("alert", (a) => Alerts.onAlert(a));
+bus.on("rbn_status", (s) => { $("chip-cluster").title += ` | RBN: ${s.text}`; });
+bus.on("log_sync", (r) => {
+  toast(`📖 Log synced (${r.file}): ${r.qsos} QSOs, +${r.slots_added} slots`);
+  loadSpots();
 });
 
 /* ---------------- solar ---------------- */
@@ -244,10 +286,10 @@ bus.on("dxped", (d) => {
   for (const it of d.items || []) {
     const row = document.createElement("div");
     row.className = "dxped-row";
-    row.title = "click to add to watch list";
+    row.title = "click for slot matrix: what you need from this one";
     row.innerHTML = `<b>${esc(it.callsign)}</b> ${esc(it.entity)}<div class="small">` +
       `${esc(it.start)} → ${esc(it.end)}  ${esc(it.bands || "")} ${esc(it.modes || "")}</div>`;
-    row.onclick = () => addWatch(it.callsign);
+    row.onclick = () => Matrix.open(it.callsign);
     wrap.appendChild(row);
   }
 });
@@ -324,6 +366,30 @@ $("adif-file").addEventListener("change", async (e) => {
   toast(`ADIF: ${res.qsos} QSOs → ${res.entities} entities, +${res.slots_added} slots`);
   loadSpots();
 });
+
+/* ---------------- gray-line time scrubber ---------------- */
+$("time-scrub").addEventListener("input", (e) => {
+  const min = parseInt(e.target.value, 10) || 0;
+  worldmap.timeOffsetMin = min;
+  const lbl = $("scrub-label");
+  if (!min) {
+    lbl.textContent = "now";
+    lbl.classList.remove("scrubbed");
+    $("scrub-now").hidden = true;
+  } else {
+    const d = new Date(Date.now() + min * 60000);
+    const sign = min > 0 ? "+" : "−";
+    lbl.textContent = `${sign}${Math.abs(min / 60).toFixed(1)}h → ` +
+      `${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}z`;
+    lbl.classList.add("scrubbed");
+    $("scrub-now").hidden = false;
+  }
+  worldmap.draw();
+});
+$("scrub-now").onclick = () => {
+  $("time-scrub").value = 0;
+  $("time-scrub").dispatchEvent(new Event("input"));
+};
 
 /* ---------------- map toggle ---------------- */
 $("map-toggle").onclick = () => {

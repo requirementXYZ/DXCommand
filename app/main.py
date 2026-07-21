@@ -1,8 +1,8 @@
 """DX Command server: wires rig, spots, DXCC, propagation, WSJT-X and the web UI.
 
-All sources (rig / spot feed / FT8 decodes / solar) are hot-swappable at runtime
+All sources (rig / spot feeds / FT8 decodes / solar) are hot-swappable at runtime
 via POST /api/config, so the browser Setup panel can switch between demo
-simulators and the real OmniRig / cluster / WSJT-X without a restart.
+simulators and the real OmniRig / cluster / RBN / WSJT-X without a restart.
 """
 from __future__ import annotations
 
@@ -16,10 +16,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
+from .alerts import AlertEngine
 from .bus import EventBus
-from .config import (BUNDLED_DIR, DATA_DIR, ROOT, _merge, grid_to_latlon,
+from .config import (BUNDLED_DIR, DATA_DIR, STATIC_DIR, _merge, grid_to_latlon,
                      load_config, save_config, update_config_file)
 from .dxcc.cty import bearing_distance, load_database
+from .dxcc.logsync import LogSync
 from .dxcc.tracker import NeededTracker
 from .dxped.calendar import load_dxpeditions
 from .propagation.beacons import transmitting_now
@@ -27,7 +29,8 @@ from .propagation.solar import SolarService
 from .rig.base import mode_for_spot
 from .rig.simulator import SimulatedRig
 from .spots.cluster_client import ClusterClient
-from .spots.parser import Spot, band_for
+from .spots.parser import BANDS, Spot, band_for
+from .spots.persist import SpotDB
 from .spots.simulator import SpotSimulator
 from .spots.store import SpotStore
 from .wsjtx.listener import WsjtxService
@@ -36,6 +39,8 @@ from .wsjtx.simulator import WsjtxSimulator
 
 WORLDMAP_URL = ("https://raw.githubusercontent.com/johan/world.geo.json/"
                 "master/countries.geo.json")
+MATRIX_BANDS = [name for name, _, _ in BANDS if name != "60m"]
+MATRIX_MODES = ["CW", "FT8", "FT4", "SSB"]
 
 cfg = load_config()
 bus = EventBus()
@@ -46,6 +51,7 @@ cty = load_database(DATA_DIR, BUNDLED_DIR, cfg.offline)
 tracker = NeededTracker(cty, DATA_DIR / "worked.json")
 store = SpotStore(max_age_s=cfg["spots"]["max_age_min"] * 60,
                   max_count=cfg["spots"]["max_count"])
+spotdb = SpotDB(DATA_DIR / "spots.db")
 watch_list: set[str] = {c.upper() for c in cfg["watch_list"]}
 
 _loop: asyncio.AbstractEventLoop | None = None
@@ -53,9 +59,20 @@ _loop: asyncio.AbstractEventLoop | None = None
 # Active services (hot-swappable)
 rig = None
 spot_source = None            # ClusterClient | SpotSimulator
+rbn_client: ClusterClient | None = None
 solar_svc: SolarService | None = None
 wsjtx_svc = None              # WsjtxService | WsjtxSimulator | None
+logsync_svc: LogSync | None = None
 _config_lock = asyncio.Lock()
+
+
+def my_continent() -> str:
+    ent = cty.lookup(cfg.callsign)
+    return ent.cont if ent else "NA"
+
+
+alert_engine = AlertEngine(lambda: cfg["alerts"], my_continent(),
+                           lambda frame: bus.publish("alert", frame, sticky=False))
 
 
 # ---------------------------------------------------------------- enrichment
@@ -66,6 +83,10 @@ def enrich(spot: Spot) -> Spot:
         spot.dxcc = {**ent.to_dict(), "azimuth": az, "distance_km": dist}
     spot.needed = tracker.needed(spot.dx_call, spot.band, spot.mode)
     spot.watched = spot.dx_call in watch_list
+    for sp in spot.spotters:
+        if not sp.get("cont"):
+            s_ent = cty.lookup(sp["call"])
+            sp["cont"] = s_ent.cont if s_ent else None
     return spot
 
 
@@ -75,12 +96,18 @@ def on_spot(spot: Spot) -> None:
     if keep and spot.mode not in keep and not spot.watched:
         return
     enrich(spot)
+    spotdb.record(spot)
     stored, _is_new = store.add(spot)
+    alert_engine.check_spot(stored)
     bus.publish("spot", stored.to_dict(), sticky=False)
 
 
 def on_cluster_status(msg: str) -> None:
     bus.publish("cluster_status", {"text": msg, "ts": int(time.time())})
+
+
+def on_rbn_status(msg: str) -> None:
+    bus.publish("rbn_status", {"text": msg, "ts": int(time.time())})
 
 
 def on_rig_change(state) -> None:
@@ -120,6 +147,7 @@ def on_wsjtx_decode(d: Decode) -> None:
         "needed": tracker.needed(call, "", "FT8") if call else "",
         "watched": bool(call and call in watch_list),
     }
+    alert_engine.check_decode(frame)
     bus.publish("wsjtx_decode", frame, sticky=False)
 
 
@@ -137,6 +165,14 @@ def on_wsjtx_qso(q: QsoLogged) -> None:
     bus.publish("qso_logged", {"call": q.dx_call, "band": band, "mode": mode},
                 sticky=False)
     bus.publish("tracker_stats", tracker.stats())
+
+
+def on_log_imported(name: str, result: dict) -> None:
+    for s in store.all():
+        s.needed = tracker.needed(s.dx_call, s.band, s.mode)
+    bus.publish("tracker_stats", tracker.stats())
+    bus.publish("log_sync", {"file": name, **result, "ts": int(time.time())},
+                sticky=False)
 
 
 # ------------------------------------------------------- service management
@@ -168,16 +204,27 @@ async def start_rig() -> None:
 
 
 async def start_spot_source() -> None:
-    global spot_source
-    if spot_source:
-        with contextlib.suppress(Exception):
-            await spot_source.stop()
+    global spot_source, rbn_client
+    for svc in (spot_source, rbn_client):
+        if svc:
+            with contextlib.suppress(Exception):
+                await svc.stop()
+    rbn_client = None
     if cfg["cluster"].get("simulate"):
         spot_source = SpotSimulator(on_spot, on_cluster_status)
+        bus.publish("rbn_status", {"text": "simulated (RBN spots mixed in)",
+                                   "ts": int(time.time())})
     else:
         spot_source = ClusterClient(cfg["cluster"]["host"], cfg["cluster"]["port"],
                                     cfg.callsign, on_spot, on_cluster_status,
                                     cfg["cluster"].get("init_commands"))
+        if cfg["rbn"].get("enabled", True):
+            rbn_client = ClusterClient(cfg["rbn"]["host"], cfg["rbn"]["port"],
+                                       cfg.callsign, on_spot, on_rbn_status,
+                                       init_commands=[])
+            rbn_client.start()
+        else:
+            bus.publish("rbn_status", {"text": "disabled", "ts": int(time.time())})
     spot_source.start()
 
 
@@ -217,19 +264,40 @@ def publish_app_info() -> None:
         "version": __version__, "callsign": cfg.callsign, "grid": cfg.grid,
         "demo": cfg["rig"]["backend"] == "simulator",
         "home": {"lat": HOME_LAT, "lon": HOME_LON},
+        "my_continent": my_continent(),
         "watch_list": sorted(watch_list),
+        "alerts": cfg["alerts"],
     })
+
+
+def seed_store_from_history() -> None:
+    """Rebuild the in-memory spot list from persisted events after a restart."""
+    events = spotdb.recent(cfg["spots"]["max_age_min"] * 60)
+    for ev in events:
+        spot = Spot(dx_call=ev["dx_call"], freq=ev["freq"], band=ev["band"],
+                    mode=ev["mode"], ts=ev["ts"], spotter=ev["spotter"] or "",
+                    comment=ev["comment"] or "", source=ev["source"] or "history",
+                    snr=ev["snr"], split_tx_khz=ev["split_tx"])
+        spot.spotters = [{"call": spot.spotter, "cont": None, "snr": spot.snr,
+                          "ts": spot.ts}]
+        enrich(spot)
+        store.add(spot)
+    if events:
+        print(f"[persist] restored {len(store.all())} spots from history")
 
 
 # ---------------------------------------------------------------- lifecycle
 @app.on_event("startup")
 async def startup() -> None:
-    global _loop
+    global _loop, logsync_svc
     _loop = asyncio.get_running_loop()
+    seed_store_from_history()
     await start_rig()
     await start_spot_source()
     await start_solar()
     await start_wsjtx()
+    logsync_svc = LogSync(lambda: cfg["logsync"], tracker, on_log_imported)
+    logsync_svc.start()
     asyncio.create_task(beacon_ticker(), name="beacons")
     asyncio.create_task(publish_dxped(), name="dxped")
     bus.publish("tracker_stats", tracker.stats())
@@ -238,10 +306,11 @@ async def startup() -> None:
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
-    for s in (spot_source, solar_svc, wsjtx_svc, rig):
+    for s in (spot_source, rbn_client, solar_svc, wsjtx_svc, logsync_svc, rig):
         if s:
             with contextlib.suppress(Exception):
                 await s.stop()
+    spotdb.close()
 
 
 async def beacon_ticker() -> None:
@@ -275,6 +344,30 @@ async def ws_endpoint(ws: WebSocket) -> None:
 @app.get("/api/spots")
 async def api_spots():
     return [s.to_dict() for s in store.all()]
+
+
+@app.get("/api/alerts")
+async def api_alerts():
+    return list(alert_engine.log)
+
+
+@app.get("/api/matrix")
+async def api_matrix(call: str):
+    call = call.upper().strip()
+    ent = cty.lookup(call)
+    if not ent:
+        return JSONResponse({"error": f"cannot resolve {call} to a DXCC entity"},
+                            status_code=404)
+    return {
+        "call": call,
+        "entity": ent.to_dict(),
+        "bands": MATRIX_BANDS,
+        "modes": MATRIX_MODES,
+        "status": tracker.entity_matrix(ent.name, MATRIX_BANDS, MATRIX_MODES),
+        "activity": spotdb.activity_summary(call),
+        "timeline": spotdb.timeline(call, 24),
+        "watched": call in watch_list,
+    }
 
 
 @app.post("/api/rig/tune")
@@ -317,7 +410,8 @@ async def api_config_set(req: Request):
     """Apply settings from the Setup panel: persist and hot-swap services."""
     global HOME_LAT, HOME_LON
     body = await req.json()
-    allowed = {"callsign", "grid", "rig", "cluster", "wsjtx", "offline"}
+    allowed = {"callsign", "grid", "rig", "cluster", "wsjtx", "rbn",
+               "alerts", "logsync", "offline"}
     patch = {k: v for k, v in body.items() if k in allowed}
     if "callsign" in patch:
         patch["callsign"] = str(patch["callsign"]).upper().strip() or "N0CALL"
@@ -325,20 +419,27 @@ async def api_config_set(req: Request):
             r"[A-Ra-r]{2}\d{2}([A-Xa-x]{2})?", str(patch["grid"]).strip()):
         return JSONResponse({"ok": False, "error": "grid must look like FN31 or FN31pr"},
                             status_code=400)
+    # Only service-affecting keys warrant restarting connections; alert or
+    # log-sync tweaks must not drop the cluster/rig/WSJT-X links.
+    service_keys = {"callsign", "grid", "rig", "cluster", "wsjtx", "rbn", "offline"}
+    services_touched = bool(service_keys & patch.keys())
     async with _config_lock:
         cfg.raw = _merge(cfg.raw, patch)
-        # Explicit UI choices override any launch-time demo forcing.
-        cfg.raw["demo_mode"] = False
-        HOME_LAT, HOME_LON = grid_to_latlon(cfg.grid)
         save_config(cfg.raw)
-        await refresh_cty()          # pull the full country list if now online
-        await start_rig()
-        await start_spot_source()
-        await start_solar()
-        await start_wsjtx()
-        asyncio.create_task(publish_dxped(), name="dxped-refresh")
-        for s in store.all():
-            enrich(s)
+        if services_touched:
+            # Explicit UI choices override any launch-time demo forcing.
+            cfg.raw["demo_mode"] = False
+            save_config(cfg.raw)
+            HOME_LAT, HOME_LON = grid_to_latlon(cfg.grid)
+            await refresh_cty()      # pull the full country list if now online
+            alert_engine.my_continent = my_continent()
+            await start_rig()
+            await start_spot_source()
+            await start_solar()
+            await start_wsjtx()
+            asyncio.create_task(publish_dxped(), name="dxped-refresh")
+            for s in store.all():
+                enrich(s)
         publish_app_info()
     return {"ok": True, "config": cfg.raw,
             "cty": {"entities": len(cty.entities), "source": cty.source}}
@@ -348,9 +449,7 @@ async def api_config_set(req: Request):
 async def api_adif(req: Request):
     text = (await req.body()).decode("utf-8", "replace")
     result = tracker.import_adif(text)
-    for s in store.all():
-        s.needed = tracker.needed(s.dx_call, s.band, s.mode)
-    bus.publish("tracker_stats", tracker.stats())
+    on_log_imported("manual import", result)
     return result
 
 
@@ -394,4 +493,4 @@ async def api_worldmap():
     return JSONResponse({"error": "offline"}, status_code=404)
 
 
-app.mount("/", StaticFiles(directory=ROOT / "static", html=True), name="static")
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

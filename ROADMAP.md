@@ -1,6 +1,13 @@
-# DX Command — Roadmap Proposal (post-1.4.0)
+# DX Command — Roadmap
 
-Status: **proposal for review** — nothing below is built yet. Priorities are ranked by
+**Update (v1.5.0, 2026-07-21): all P1 and P2 items below SHIPPED** — alerting engine,
+DXpedition slot matrix, RBN feed with spotted-by-continent, log auto-sync with
+LoTW-confirmed tracking, gray-line time scrubber, SQLite spot persistence with
+activity timelines, band-openings strip, and the one-file Windows build
+(`build_exe.bat` / release exe). P3 and exploratory items remain open for a
+future release.
+
+Original proposal (kept for context). Priorities are ranked by
 value to the target operator: a CW/FT8 DXer trying to put a DXpedition in the log.
 Effort is a rough guide (S = a session, M = a few sessions, L = a mini-project).
 

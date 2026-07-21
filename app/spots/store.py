@@ -25,12 +25,33 @@ class SpotStore:
                 s.split_tx_khz = spot.split_tx_khz or s.split_tx_khz
                 if spot.mode != "OTHER":
                     s.mode = spot.mode
+                if spot.snr is not None and (s.snr is None or spot.snr > s.snr):
+                    s.snr = spot.snr
+                self._merge_spotters(s, spot)
                 return s, False
         self._spots[spot.key()] = spot
         if len(self._spots) > self.max_count:
             oldest = min(self._spots.values(), key=lambda s: s.ts)
             del self._spots[oldest.key()]
         return spot, True
+
+    @staticmethod
+    def _merge_spotters(existing: Spot, incoming: Spot) -> None:
+        """Aggregate who has heard this station (RBN + cluster combined)."""
+        known = {sp["call"]: sp for sp in existing.spotters}
+        for sp in incoming.spotters:
+            cur = known.get(sp["call"])
+            if cur:
+                cur["ts"] = sp["ts"]
+                if sp.get("snr") is not None:
+                    cur["snr"] = sp["snr"]
+                if sp.get("cont"):
+                    cur["cont"] = sp["cont"]
+            else:
+                existing.spotters.append(dict(sp))
+        if len(existing.spotters) > 20:
+            existing.spotters.sort(key=lambda x: -x["ts"])
+            del existing.spotters[20:]
 
     def prune(self) -> list[str]:
         cutoff = time.time() - self.max_age_s

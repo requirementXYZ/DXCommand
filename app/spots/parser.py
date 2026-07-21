@@ -41,6 +41,7 @@ MODE_WORDS = [
 
 SPLIT_UP = re.compile(r"\b(UP|DN|DWN|DOWN)\s*(\d{1,3}(?:\.\d+)?)?\b", re.I)
 QSX = re.compile(r"\bQSX\s*(\d{3,6}(?:\.\d+)?)\b", re.I)
+SNR_RE = re.compile(r"\b(\d{1,2})\s?dB\b", re.I)   # RBN/skimmer comments
 
 
 @dataclass
@@ -57,11 +58,15 @@ class Spot:
     dxcc: dict | None = None
     needed: str = ""             # "", "atno", "band", "mode"
     watched: bool = False
+    snr: int | None = None       # dB, from RBN/skimmer comments
+    spotters: list = field(default_factory=list)  # [{call, cont, snr, ts}]
 
     def to_dict(self) -> dict:
         d = asdict(self)
         d["id"] = self.key()
         d["age_s"] = int(time.time() - self.ts)
+        d["heard_conts"] = sorted({s.get("cont") for s in self.spotters
+                                   if s.get("cont")})
         return d
 
     def key(self) -> str:
@@ -124,12 +129,18 @@ def parse_spot_line(line: str) -> Spot | None:
     if len(dx) < 3 or not any(c.isdigit() for c in dx):
         return None
     comment = (m.group("comment") or "").strip()
-    return Spot(
+    snr_m = SNR_RE.search(comment)
+    spotter = m.group("spotter").upper().rstrip("-#")
+    spot = Spot(
         dx_call=dx,
         freq=freq,
-        spotter=m.group("spotter").upper().rstrip("-#"),
+        spotter=spotter,
         comment=comment,
         band=band,
         mode=classify_mode(freq, comment),
         split_tx_khz=split_hint(freq, comment),
+        snr=int(snr_m.group(1)) if snr_m else None,
     )
+    spot.spotters = [{"call": spotter, "cont": None, "snr": spot.snr,
+                      "ts": spot.ts}]
+    return spot

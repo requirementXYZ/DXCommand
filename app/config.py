@@ -4,12 +4,21 @@ from __future__ import annotations
 import copy
 import json
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+if getattr(sys, "frozen", False):
+    # PyInstaller onefile: assets unpack to _MEIPASS; config/data live next
+    # to the exe so they survive between runs.
+    ROOT = Path(sys.executable).resolve().parent
+    ASSETS = Path(getattr(sys, "_MEIPASS", ROOT))
+else:
+    ROOT = Path(__file__).resolve().parent.parent
+    ASSETS = ROOT
 DATA_DIR = ROOT / "data"
-BUNDLED_DIR = ROOT / "app" / "bundled"
+STATIC_DIR = ASSETS / "static"
+BUNDLED_DIR = ASSETS / "app" / "bundled"
 CONFIG_PATH = ROOT / "config.json"
 
 DEFAULTS: dict = {
@@ -26,7 +35,19 @@ DEFAULTS: dict = {
         "simulate": False,
     },
     "wsjtx": {"enabled": True, "udp_port": 2237, "simulate": False},
+    "rbn": {"enabled": True, "host": "telnet.reversebeacon.net", "port": 7000},
     "spots": {"max_age_min": 30, "max_count": 2000},
+    "alerts": {
+        "enabled": True,
+        "notify_atno": True,
+        "notify_band": False,
+        "notify_mode": False,
+        "notify_watch": True,
+        "only_my_continent": False,
+        "quiet": "",
+        "sound": "ping",
+    },
+    "logsync": {"paths": [], "auto_wsjtx": True, "poll_s": 30},
     "watch_list": [],
     "offline": False,
 }

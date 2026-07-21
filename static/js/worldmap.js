@@ -14,6 +14,7 @@ class WorldMap {
     this.home = null;           // {lat, lon, call, grid}
     this.selected = null;       // spot with dxcc
     this.markers = [];          // rebuilt each draw: {x, y, type, data}
+    this.timeOffsetMin = 0;     // gray-line scrubber offset
     this.popup = this._makePopup();
     this.loadLand();
     canvas.addEventListener("click", (e) => this.click(e));
@@ -160,6 +161,10 @@ class WorldMap {
     });
   }
 
+  mapTime() {
+    return new Date(Date.now() + this.timeOffsetMin * 60000);
+  }
+
   /* Subsolar point from current UTC time */
   static subsolar(date) {
     const d = (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
@@ -258,7 +263,7 @@ class WorldMap {
     }
 
     // sun
-    const [slat, slon] = WorldMap.subsolar(new Date());
+    const [slat, slon] = WorldMap.subsolar(this.mapTime());
     const [sx, sy] = this.xy(slat, slon);
     ctx.fillStyle = "#ffd23a";
     ctx.beginPath(); ctx.arc(sx, sy, 5, 0, 7); ctx.fill();
@@ -267,7 +272,7 @@ class WorldMap {
 
   drawNight() {
     const { ctx, canvas } = this;
-    const [decl, slon] = WorldMap.subsolar(new Date());
+    const [decl, slon] = WorldMap.subsolar(this.mapTime());
     ctx.fillStyle = "rgba(2,6,14,.55)";
     ctx.beginPath();
     const declR = decl * Math.PI / 180;

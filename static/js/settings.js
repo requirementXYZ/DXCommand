@@ -15,6 +15,8 @@ const Settings = {
       $("set-cluster-port").value = c.cluster.port || 23;
       $("set-wsjtx").value = c.wsjtx.simulate ? "sim" : (c.wsjtx.enabled ? "udp" : "off");
       $("set-wsjtx-port").value = c.wsjtx.udp_port || 2237;
+      $("set-rbn").checked = !c.rbn || c.rbn.enabled !== false;
+      $("set-logsync").value = ((c.logsync || {}).paths || []).join("\n");
       Settings.refreshEnabled();
       $("settings-overlay").hidden = false;
     });
@@ -55,6 +57,9 @@ const Settings = {
         enabled: $("set-wsjtx").value !== "off",
         udp_port: parseInt($("set-wsjtx-port").value, 10) || 2237,
       },
+      rbn: { enabled: $("set-rbn").checked },
+      logsync: { paths: $("set-logsync").value.split("\n")
+                   .map((s) => s.trim()).filter(Boolean) },
     };
     const btn = $("settings-save");
     btn.disabled = true;

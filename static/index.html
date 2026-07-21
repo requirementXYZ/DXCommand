@@ -74,7 +74,7 @@
 
     <section class="panel" id="dxped-panel">
       <h3>DXPEDITIONS <span class="dim" id="dxped-src"></span>
-        <span class="info" data-tip="Current and announced DXpeditions (NG3K ADXO when online). Click an entry to add its callsign to your watch list — you'll get an alert the moment it is spotted or decoded.">i</span></h3>
+        <span class="info" data-tip="Current and announced DXpeditions (NG3K ADXO when online). Click an entry to open its SLOT MATRIX: what you still need from it band-by-band, where it has been active, and one-click tune. The ⚑ button there adds it to your watch list.">i</span></h3>
       <div id="dxped-list"></div>
     </section>
   </aside>
@@ -87,6 +87,7 @@
 
   <!-- spots -->
   <section id="col-spots">
+    <div id="openings-strip" title="Band openings: spot count in the last 30 min and which DX continents are active. Click a band to filter."></div>
     <div id="filter-bar">
       <div class="fgroup" id="filter-bands"></div>
       <div class="fgroup" id="filter-modes">
@@ -104,7 +105,7 @@
       <table id="spot-table">
         <thead><tr>
           <th>UTC</th><th class="r">kHz</th><th>DX</th><th>Mode</th>
-          <th>Country</th><th class="r">Az°</th><th>Comment</th><th class="r">Age</th>
+          <th>Country</th><th class="r">Az°</th><th>Heard</th><th>Comment</th><th class="r">Age</th>
         </tr></thead>
         <tbody id="spot-tbody"></tbody>
       </table>
@@ -118,6 +119,31 @@
         <span class="info" data-tip="Live mirror of WSJT-X decodes (UDP port 2237). Green = CQ; red/orange = a DXCC entity you still need; purple = watch list. Double-click a decode and WSJT-X will set that station as DX and reply. In demo mode this shows simulated Fox/Hound traffic.">i</span></h3>
       <div class="small dim" id="wsjtx-hint">double-click a decode to reply in WSJT-X</div>
       <div id="ft8-list"></div>
+    </section>
+    <section class="panel" id="alert-panel">
+      <h3>ALERTS <span class="dim" id="alert-count"></span>
+        <span class="info" data-tip="Get fetched to the radio when it matters: desktop notification + sound when a spot or FT8 decode matches your rules. 'Only heard by my continent' waits until a skimmer/spotter on your own continent hears them — i.e. the band is open TO YOU. Quiet hours silence everything (e.g. 23:00-06:30). The log below keeps the last alerts so you can review what you missed.">i</span></h3>
+      <div class="alert-opts">
+        <label><input type="checkbox" id="alerts-enabled"> enabled</label>
+        <label><input type="checkbox" id="alert-desktop"> desktop notifications</label>
+      </div>
+      <div class="alert-opts">
+        <label class="atno"><input type="checkbox" id="alert-atno"> ATNO</label>
+        <label class="nband"><input type="checkbox" id="alert-band"> new band</label>
+        <label class="nmode"><input type="checkbox" id="alert-mode"> new mode</label>
+        <label class="watch"><input type="checkbox" id="alert-watch"> watch list</label>
+      </div>
+      <div class="alert-opts">
+        <label><input type="checkbox" id="alert-mycont"> only heard by my continent</label>
+      </div>
+      <div class="alert-opts">
+        <label>quiet <input id="alert-quiet" placeholder="23:00-06:30" size="11"></label>
+        <label>sound <select id="alert-sound">
+          <option value="ping">ping</option><option value="alarm">alarm</option>
+          <option value="off">off</option></select></label>
+        <button class="btn small-btn" id="alert-test" title="preview the alert sound">♪</button>
+      </div>
+      <div id="alert-log"></div>
     </section>
     <section class="panel" id="watch-panel">
       <h3>WATCH LIST <span class="dim">alerts on these calls</span>
@@ -138,6 +164,11 @@
       <span class="info" data-tip="Live day/night map — the shaded side is in darkness and the boundary is the gray line, where low-band DX signals often peak. Dots = active spots (colour = mode or needed-status), ★ = your QTH, green diamonds = NCDXF beacons, ☀ = the sun. Click any marker for details — spots and beacons can be tuned straight from the popup, and clicking a spot draws the great-circle path with azimuth and distance.">i</span></h3>
     <span class="dim small" id="map-info"></span>
     <div class="grow"></div>
+    <div id="scrub-wrap" title="Scrub time: see where the gray line will be. The sun and terminator move; spots stay as they are now.">
+      <button class="btn small-btn" id="scrub-now" hidden>NOW</button>
+      <input type="range" id="time-scrub" min="-1440" max="1440" step="15" value="0">
+      <span class="small" id="scrub-label">now</span>
+    </div>
     <button class="btn small-btn" id="map-toggle">hide</button>
   </div>
   <canvas id="worldmap"></canvas>
@@ -161,6 +192,28 @@
     <div id="cw-score"><span>Copied <b id="cw-ok">0</b></span><span>Missed <b id="cw-bad">0</b></span><span>Streak <b id="cw-streak">0</b></span></div>
     <input id="cw-input" placeholder="type the callsign you hear + Enter" autocomplete="off" spellcheck="false" disabled>
     <div id="cw-log" class="small"></div>
+  </div>
+</div>
+
+<!-- DXpedition slot matrix overlay -->
+<div id="matrix-overlay" hidden>
+  <div id="matrix-box">
+    <div id="matrix-head">
+      <h3 id="matrix-title">SLOT MATRIX</h3>
+      <span class="dim small" id="matrix-sub"></span>
+      <div class="grow"></div>
+      <button class="btn small-btn" id="matrix-watch">⚑ watch</button>
+      <button class="btn small-btn" id="matrix-close">✕ close</button>
+    </div>
+    <div class="small dim" id="matrix-hint">
+      Your log vs their activity: <span class="lg-inline need">needed</span>
+      <span class="lg-inline worked">worked</span>
+      <span class="lg-inline confirmed">confirmed</span> ·
+      ● = spotted in the last 24 h (click an active cell to tune to their last frequency)
+    </div>
+    <div id="matrix-grid"></div>
+    <h4 class="matrix-h4">ACTIVITY — LAST 24 H (UTC)</h4>
+    <div id="matrix-timeline"></div>
   </div>
 </div>
 
@@ -274,6 +327,17 @@
       <label class="set-field">WSJT-X UDP port
         <input id="set-wsjtx-port" type="number" min="1" max="65535">
       </label>
+
+      <label class="set-field wide" id="set-rbn-wrap">
+        <span>Reverse Beacon Network
+          <span class="info" data-tip="A second live spot source: thousands of automated CW skimmers report exactly who they hear and how loud (dB). Combined with cluster spots, each DX shows WHO is hearing it — so you know if the band is open to you. Only used with a live (non-demo) spot source.">i</span></span>
+        <label class="set-inline"><input type="checkbox" id="set-rbn"> connect to telnet.reversebeacon.net (CW skimmer spots with dB)</label>
+      </label>
+
+      <label class="set-field wide">Log files to auto-import (one per line)
+        <span class="info" data-tip="Watched ADIF files are re-imported automatically whenever they change, so needed-flags stay current. WSJT-X's wsjtx_log.adi is found automatically if present. Add your logger's ADIF export path here. QSL/LoTW-received fields mark slots as confirmed.">i</span>
+        <textarea id="set-logsync" rows="2" spellcheck="false" placeholder="C:\Users\me\Documents\mylog.adi"></textarea>
+      </label>
     </div>
 
     <div class="set-actions">
@@ -292,6 +356,8 @@
 <script src="js/cwtrainer.js"></script>
 <script src="js/help.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/alerts.js"></script>
+<script src="js/matrix.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

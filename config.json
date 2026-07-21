@@ -1,6 +1,6 @@
 {
   "callsign": "N0CALL",
-  "grid": "FN31pr",
+  "grid": "IO95rj",
   "port": 8073,
   "demo_mode": false,
   "rig": {
@@ -21,16 +21,36 @@
       "SET/FT8",
       "SET/FT4"
     ],
-    "simulate": false
+    "simulate": true
   },
   "wsjtx": {
     "enabled": true,
     "udp_port": 2237,
     "simulate": true
   },
+  "rbn": {
+    "enabled": true,
+    "host": "telnet.reversebeacon.net",
+    "port": 7000
+  },
   "spots": {
     "max_age_min": 30,
     "max_count": 2000
+  },
+  "alerts": {
+    "enabled": true,
+    "notify_atno": true,
+    "notify_band": false,
+    "notify_mode": false,
+    "notify_watch": true,
+    "only_my_continent": false,
+    "quiet": "",
+    "sound": "ping"
+  },
+  "logsync": {
+    "paths": [],
+    "auto_wsjtx": true,
+    "poll_s": 30
   },
   "watch_list": [],
   "offline": false

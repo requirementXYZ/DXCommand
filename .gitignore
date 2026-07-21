@@ -5,5 +5,8 @@ __pycache__/
 *.pyc
 # local packaging output
 *.zip
+build/
+dist/
+*.spec
 # local editor / assistant config
 .claude/

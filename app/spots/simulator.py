@@ -66,13 +66,23 @@ class SpotSimulator:
         call, freq, mode, comments = random.choices(entries, weights=weights)[0]
         freq = round(freq + random.uniform(-0.3, 0.3), 1)
         comment = random.choice(comments)
-        return Spot(
-            dx_call=call, freq=freq, spotter=random.choice(SPOTTERS),
+        spotter = random.choice(SPOTTERS)
+        snr = None
+        # ~40% of CW traffic arrives as RBN skimmer spots (CW Skimmer heritage)
+        if mode == "CW" and random.random() < 0.4:
+            snr = random.randint(6, 38)
+            wpm = random.randint(18, 34)
+            spotter = random.choice(SPOTTERS)
+            comment = f"CW {snr} dB {wpm} WPM CQ"
+        spot = Spot(
+            dx_call=call, freq=freq, spotter=spotter,
             comment=comment, band=band_for(freq),
             mode=mode if mode != "SSB" else classify_mode(freq, comment),
             split_tx_khz=split_hint(freq, comment),
-            ts=time.time(), source="simulator",
+            ts=time.time(), source="simulator", snr=snr,
         )
+        spot.spotters = [{"call": spotter, "cont": None, "snr": snr, "ts": spot.ts}]
+        return spot
 
     async def _run(self) -> None:
         self.on_status("simulated cluster feed (demo mode)")

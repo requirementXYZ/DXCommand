@@ -8,21 +8,33 @@ dashboard that talks to **any radio supported by OmniRig**.
 
 | | |
 |---|---|
-| Live DX spots | Telnet cluster client, CW/FT8/FT4 classification, split-comment parsing (`UP 2`, `QSX …`) |
+| Live DX spots | Telnet cluster client **plus Reverse Beacon Network**, CW/FT8/FT4 classification, split-comment parsing (`UP 2`, `QSX …`) |
+| Who hears them | Every spot aggregates its spotters: continents + skimmer SNR — see at a glance if the band is open **to you** |
+| **Alerts** | Desktop notification + sound when a needed entity or watched call appears (spot *or* FT8 decode); quiet hours, "only heard by my continent", reviewable alert log |
 | Click-to-tune | One click sets frequency **and mode and split** on your rig via OmniRig |
 | Band map | Vertical ladder per band, CW/FT8 segments shaded, rig cursor, click to QSY |
-| Needed DXCC | Import your log (ADIF) — ATNO / new-band / new-mode flags on every spot & decode |
+| **Slot matrix** | Click a DXpedition → band × mode grid of needed / worked / confirmed vs where it's been active, 24 h activity timeline, click-to-tune (Club Log style) |
+| Needed DXCC | ADIF import **with auto-sync**: watched log files re-import on change; QSL/LoTW fields mark slots **confirmed** |
 | WSJT-X | Live decode mirror with DXCC + needed colouring; double-click a decode → WSJT-X starts calling |
-| Gray line | World map with live solar terminator, spot markers, great-circle path + azimuth |
+| Gray line | World map with live solar terminator, clickable markers, **time scrubber** (where's the gray line at 0300Z?), great-circle path + azimuth |
+| Band openings | Per-band strip: spot rate + active DX continents in the last 30 min |
 | NCDXF beacons | Live 18-beacon schedule clock; click to listen (Faros heritage) |
 | Solar data | SFI / SSN / A / K / X-ray + band conditions (hamqsl.com) |
-| DXpeditions | Current & announced operations; one click adds to the alert watch list |
+| Spot history | SQLite persistence — spots survive restarts and feed the activity timelines (7-day retention) |
 | CW Pileup Trainer | Morse Runner-style multi-station pileup in the browser (Web Audio, works offline) |
 | **Demo mode** | Full simulation of rig + cluster + WSJT-X — try everything with **no radio and no internet** |
 
 ---
 
 ## Installation
+
+**Option A — no Python needed (Windows):** download `DXCommand.exe` from the
+[latest GitHub release](https://github.com/requirementXYZ/DXCommand/releases),
+put it in a folder of its own and run it. It opens the dashboard in your browser;
+`config.json` and a `data/` folder are created next to the exe.
+(To build the exe yourself: `pip install pyinstaller` then run `build_exe.bat`.)
+
+**Option B — from source:**
 
 1. Install [Python 3.11+](https://www.python.org/downloads/) (tick *"Add python to PATH"*).
 2. Get the code — either:
@@ -92,6 +104,14 @@ Prerequisites for live operation:
    a CQ → WSJT-X sets that DX call and (with Enable Tx armed) starts calling.
 7. **Beacons** — at hh:mm:00 with minutes divisible by 3, 14.100 shows 4U1UN
    (published NCDXF schedule). Click a beacon row and listen.
+8. **Alerts** — in the ALERTS panel enable *desktop notifications* (allow the
+   browser prompt) and press ♪ to preview the sound. Add a call to the watch
+   list and confirm you get an alert when it is next spotted.
+9. **Slot matrix** — click any DXpedition in the left panel: the band×mode grid
+   should reflect your imported log (✓ worked, ✓✓ confirmed) and show ● where
+   it has been spotted in the last 24 h; clicking an active cell tunes the rig.
+10. **Log auto-sync** — with WSJT-X installed, its `wsjtx_log.adi` is picked up
+    automatically: log a QSO and watch a "Log synced" toast within ~30 s.
 
 Anything off? Note the step number and send back console output from the black window.
 

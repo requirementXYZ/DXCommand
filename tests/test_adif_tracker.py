@@ -65,3 +65,36 @@ def test_import_stats(tmp_path):
     result = t.import_adif(ADIF)
     assert result["qsos"] == 4
     assert result["entities"] == 3  # Japan, England, Switzerland
+
+
+def test_confirmed_tracking_and_no_downgrade(tracker):
+    # G4IRN had qsl_rcvd=Y -> confirmed SSB slot
+    assert tracker.slot_status("England", "20m", "SSB") == "C"
+    assert tracker.slot_status("Japan", "20m", "CW") == "W"
+    # re-import without confirmation must not downgrade C -> W
+    tracker.import_adif("<eoh><call:5>G4IRN <band:3>20m <mode:3>SSB <eor>")
+    assert tracker.slot_status("England", "20m", "SSB") == "C"
+    # confirmation upgrades W -> C
+    tracker.import_adif("<eoh><call:6>JA1NUT <band:3>20m <mode:2>CW <qsl_rcvd:1>Y <eor>")
+    assert tracker.slot_status("Japan", "20m", "CW") == "C"
+
+
+def test_legacy_v1_file_migrates(tmp_path):
+    import json
+    path = tmp_path / "worked.json"
+    path.write_text(json.dumps({"Japan": {"20m": ["CW", "FT8"]}}))
+    db = CtyDatabase.from_file(BUNDLED)
+    t = NeededTracker(db, path)
+    assert t.slot_status("Japan", "20m", "CW") == "W"
+    assert t.needed("JA1NUT", "20m", "CW") == ""
+    assert t.needed("JA1NUT", "20m", "FT4") == "mode"
+
+
+def test_entity_matrix_and_stats(tracker):
+    m = tracker.entity_matrix("Japan", ["20m", "40m"], ["CW", "FT8"])
+    assert m["20m"]["CW"] == "W"
+    assert m["40m"]["FT8"] == "W"
+    assert m["20m"]["FT8"] == ""
+    st = tracker.stats()
+    assert st["entities_worked"] == 3
+    assert st["confirmed_slots"] == 1
