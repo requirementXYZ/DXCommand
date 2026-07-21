@@ -382,6 +382,18 @@
         <label class="set-inline"><input type="checkbox" id="set-rbn"> connect to telnet.reversebeacon.net (CW skimmer spots with dB)</label>
       </label>
 
+      <label class="set-field wide">
+        <span>LoTW direct sync
+          <span class="info" data-tip="Pull your worked and confirmed QSOs straight from ARRL Logbook of the World — no ADIF export needed. Uses your LoTW website login (same credentials every logger uses). Syncs are incremental (since-dates remembered) and QSL records mark slots confirmed ✓✓. Credentials are stored in config.json on this PC only. SYNC NOW runs immediately; auto-sync repeats daily while enabled.">i</span></span>
+        <span class="lotw-row">
+          <input id="set-lotw-user" placeholder="LoTW username" spellcheck="false" autocomplete="off">
+          <input id="set-lotw-pass" type="password" placeholder="LoTW password" autocomplete="new-password">
+          <label class="set-inline"><input type="checkbox" id="set-lotw-auto"> daily auto-sync</label>
+          <button class="btn small-btn" id="lotw-sync-now" type="button">⟳ SYNC NOW</button>
+        </span>
+        <span class="small dim" id="lotw-status"></span>
+      </label>
+
       <label class="set-field wide">Log files to auto-import (one per line)
         <span class="info" data-tip="Watched ADIF files are re-imported automatically whenever they change, so needed-flags stay current. WSJT-X's wsjtx_log.adi is found automatically if present. Add your logger's ADIF export path here. QSL/LoTW-received fields mark slots as confirmed.">i</span>
         <textarea id="set-logsync" rows="2" spellcheck="false" placeholder="C:\Users\me\Documents\mylog.adi"></textarea>

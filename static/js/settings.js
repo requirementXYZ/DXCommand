@@ -17,9 +17,47 @@ const Settings = {
       $("set-wsjtx-port").value = c.wsjtx.udp_port || 2237;
       $("set-rbn").checked = !c.rbn || c.rbn.enabled !== false;
       $("set-logsync").value = ((c.logsync || {}).paths || []).join("\n");
+      const lotw = c.lotw || {};
+      $("set-lotw-user").value = lotw.username || "";
+      $("set-lotw-pass").value = lotw.password || "";
+      $("set-lotw-auto").checked = !!lotw.enabled;
+      $("lotw-status").textContent = "";
       Settings.refreshEnabled();
       $("settings-overlay").hidden = false;
     });
+  },
+
+  async lotwSyncNow() {
+    const btn = $("lotw-sync-now");
+    btn.disabled = true;
+    $("lotw-status").textContent = "saving credentials and syncing with LoTW… " +
+      "(a first full-log download can take a minute)";
+    try {
+      // Persist the current credentials first so the sync uses them.
+      await post("/api/config", { lotw: Settings.lotwBody() });
+      const r = await fetch("/api/lotw/sync", { method: "POST" });
+      const res = await r.json();
+      if (res.ok) {
+        $("lotw-status").textContent =
+          `✓ synced: ${res.worked_qsos} QSOs + ${res.confirmed_qsls} QSLs → ` +
+          `+${res.slots_added} slots (${res.entities} entities)`;
+        toast(`LoTW sync: +${res.slots_added} slots`);
+      } else {
+        $("lotw-status").textContent = `✗ ${res.error}`;
+      }
+    } catch (e) {
+      $("lotw-status").textContent = `✗ ${e.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  },
+
+  lotwBody() {
+    return {
+      enabled: $("set-lotw-auto").checked,
+      username: $("set-lotw-user").value.trim(),
+      password: $("set-lotw-pass").value,
+    };
   },
 
   close() { $("settings-overlay").hidden = true; },
@@ -60,6 +98,7 @@ const Settings = {
       rbn: { enabled: $("set-rbn").checked },
       logsync: { paths: $("set-logsync").value.split("\n")
                    .map((s) => s.trim()).filter(Boolean) },
+      lotw: Settings.lotwBody(),
     };
     const btn = $("settings-save");
     btn.disabled = true;
@@ -97,6 +136,7 @@ $("preset-demo").onclick = () => Settings.preset(false);
 $("preset-live").onclick = () => Settings.preset(true);
 $("set-cluster").onchange = Settings.refreshEnabled;
 $("set-wsjtx").onchange = Settings.refreshEnabled;
+$("lotw-sync-now").onclick = Settings.lotwSyncNow;
 $("settings-overlay").addEventListener("click", (e) => {
   if (e.target.id === "settings-overlay") Settings.close();
 });

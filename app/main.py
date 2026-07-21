@@ -22,6 +22,7 @@ from .config import (BUNDLED_DIR, DATA_DIR, STATIC_DIR, _merge, grid_to_latlon,
                      load_config, save_config, update_config_file)
 from .dxcc.cty import bearing_distance, load_database
 from .dxcc.logsync import LogSync
+from .dxcc.lotw import LotwError, LotwSync
 from .dxcc.tracker import NeededTracker
 from .dxped.calendar import load_dxpeditions
 from .propagation.beacons import transmitting_now
@@ -63,6 +64,8 @@ rbn_client: ClusterClient | None = None
 solar_svc: SolarService | None = None
 wsjtx_svc = None              # WsjtxService | WsjtxSimulator | None
 logsync_svc: LogSync | None = None
+lotw_sync = LotwSync(DATA_DIR / "lotw_state.json")
+_lotw_lock = asyncio.Lock()
 _config_lock = asyncio.Lock()
 
 
@@ -300,6 +303,7 @@ async def startup() -> None:
     logsync_svc.start()
     asyncio.create_task(beacon_ticker(), name="beacons")
     asyncio.create_task(publish_dxped(), name="dxped")
+    asyncio.create_task(lotw_auto_task(), name="lotw")
     bus.publish("tracker_stats", tracker.stats())
     publish_app_info()
 
@@ -311,6 +315,32 @@ async def shutdown() -> None:
             with contextlib.suppress(Exception):
                 await s.stop()
     spotdb.close()
+
+
+async def run_lotw_sync() -> dict:
+    """Run a LoTW pull in a worker thread; refresh needed-flags on success."""
+    async with _lotw_lock:
+        lotw = cfg["lotw"]
+        result = await asyncio.to_thread(
+            lotw_sync.sync, lotw.get("username", ""), lotw.get("password", ""), tracker)
+    on_log_imported("LoTW", {"qsos": result["worked_qsos"] + result["confirmed_qsls"],
+                             "slots_added": result["slots_added"]})
+    return result
+
+
+async def lotw_auto_task() -> None:
+    while True:
+        try:
+            hours = max(float(cfg["lotw"].get("auto_hours", 24)), 1)
+            if cfg["lotw"].get("enabled") and not cfg.offline:
+                try:
+                    r = await run_lotw_sync()
+                    print(f"[lotw] auto-sync: +{r['slots_added']} slots")
+                except LotwError as exc:
+                    print(f"[lotw] auto-sync failed: {exc}")
+            await asyncio.sleep(hours * 3600)
+        except asyncio.CancelledError:
+            return
 
 
 async def beacon_ticker() -> None:
@@ -349,6 +379,15 @@ async def api_spots():
 @app.get("/api/alerts")
 async def api_alerts():
     return list(alert_engine.log)
+
+
+@app.post("/api/lotw/sync")
+async def api_lotw_sync():
+    try:
+        result = await run_lotw_sync()
+        return {"ok": True, **result}
+    except LotwError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
 
 
 @app.get("/api/worked")
@@ -418,7 +457,7 @@ async def api_config_set(req: Request):
     global HOME_LAT, HOME_LON
     body = await req.json()
     allowed = {"callsign", "grid", "rig", "cluster", "wsjtx", "rbn",
-               "alerts", "logsync", "offline"}
+               "alerts", "logsync", "lotw", "offline"}
     patch = {k: v for k, v in body.items() if k in allowed}
     if "callsign" in patch:
         patch["callsign"] = str(patch["callsign"]).upper().strip() or "N0CALL"

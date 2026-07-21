@@ -59,19 +59,23 @@ class NeededTracker:
         slot[mode] = status
         return True
 
-    def import_adif(self, text: str) -> dict:
+    def import_adif(self, text: str, force_confirmed: bool = False) -> dict:
+        """force_confirmed: treat every record as a confirmation (LoTW QSL report)."""
         qsos = parse_adif(text)
         added = 0
         unresolved = 0
         for q in qsos:
             call, band, mode, confirmed = qso_summary(q)
             ent = self.cty.lookup(call)
-            name = q.get("country") or (ent.name if ent else None)
+            # Prefer the cty-resolved name: sources spell COUNTRY differently
+            # (LoTW uppercases it) and mixed casings would split one entity
+            # into several rows.
+            name = (ent.name if ent else None) or q.get("country")
             if not name or not band:
                 unresolved += 1
                 continue
             if self._upgrade_slot(name, band, mode,
-                                  CONFIRMED if confirmed else WORKED):
+                                  CONFIRMED if (confirmed or force_confirmed) else WORKED):
                 added += 1
         self.save()
         return {"qsos": len(qsos), "slots_added": added, "unresolved": unresolved,

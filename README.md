@@ -15,6 +15,7 @@ dashboard that talks to **any radio supported by OmniRig**.
 | Band map | Vertical ladder per band, CW/FT8 segments shaded, rig cursor, click to QSY |
 | **Slot matrix** | Click a DXpedition → band × mode grid of needed / worked / confirmed vs where it's been active, 24 h activity timeline, click-to-tune (Club Log style) |
 | Needed DXCC | ADIF import **with auto-sync**: watched log files re-import on change; QSL/LoTW fields mark slots **confirmed** |
+| **LoTW direct sync** | No export needed: pull worked QSOs and QSL confirmations straight from Logbook of the World (incremental, daily auto-sync or SYNC NOW in ⚙ SETUP) |
 | **DXCC table** | ☑ DXCC button: award-chart view of your standings — entities × bands, ✓ worked / ✓✓ confirmed, per-mode tooltips, mode filter, search, band totals |
 | WSJT-X | Live decode mirror with DXCC + needed colouring; double-click a decode → WSJT-X starts calling |
 | Gray line | World map with live solar terminator, clickable markers, **time scrubber** (where's the gray line at 0300Z?), great-circle path + azimuth |
@@ -136,6 +137,16 @@ Anything off? Note the step number and send back console output from the black w
 Tip: point `cluster.host` at a local instance of VE3NEA's
 [PskrDxClusterService](https://github.com/VE3NEA/PskrDxClusterService)
 (`localhost:7309`) for a very dense FT8 spot feed from PSK Reporter.
+
+### LoTW direct sync
+
+In **⚙ SETUP → LoTW direct sync**, enter your LoTW *website* username and
+password (the same login every logging program uses for LoTW downloads) and
+press **⟳ SYNC NOW** — or tick *daily auto-sync*. Two reports are pulled from
+`lotw.arrl.org`: all QSOs you've uploaded (→ *worked*) and all QSLs received
+(→ *confirmed ✓✓*). Syncs are incremental after the first full download.
+Your credentials are stored in `config.json` **on your PC only** (plain text,
+the same approach as other logging software) and are never written to logs.
 
 - `data/cty.dat` — full AD1C country file, downloaded automatically the first time
   the app runs an online configuration (including immediately when you SAVE & APPLY

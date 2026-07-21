@@ -2,7 +2,7 @@
   "callsign": "N0CALL",
   "grid": "IO95rj",
   "port": 8073,
-  "demo_mode": false,
+  "demo_mode": true,
   "rig": {
     "backend": "simulator",
     "rig_number": 1,
@@ -51,6 +51,12 @@
     "paths": [],
     "auto_wsjtx": true,
     "poll_s": 30
+  },
+  "lotw": {
+    "enabled": false,
+    "username": "",
+    "password": "",
+    "auto_hours": 24
   },
   "watch_list": [],
   "offline": false

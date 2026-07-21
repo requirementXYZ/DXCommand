@@ -48,6 +48,7 @@ DEFAULTS: dict = {
         "sound": "ping",
     },
     "logsync": {"paths": [], "auto_wsjtx": True, "poll_s": 30},
+    "lotw": {"enabled": False, "username": "", "password": "", "auto_hours": 24},
     "watch_list": [],
     "offline": False,
 }

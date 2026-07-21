@@ -1,2 +1,2 @@
 """DX Command - web dashboard for CW/FT8 DXpedition chasers."""
-__version__ = "1.7.0"
+__version__ = "1.8.0"
