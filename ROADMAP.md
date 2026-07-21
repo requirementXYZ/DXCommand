@@ -72,8 +72,9 @@ tracked (ATNO chasing usually means *confirmed* matters).
 
 ## P3 — worthwhile, not urgent
 
-9. **CW trainer expansion** — exchange copying (599 + serial), QSB/QRN/QRM options,
-   pileup depth ramping, session history/high scores (full Morse Runner parity).
+9. ~~**CW trainer expansion** — exchange copying (599 + serial), QSB/QRN/QRM options,
+   pileup depth ramping, session history/high scores (full Morse Runner parity).~~
+   **SHIPPED in v1.6.0.**
 10. **LAN/tablet access** — bind option beyond localhost with a simple token, plus a
     responsive layout for a tablet in the shack.
 11. **Lightweight path scoring** — day/night + solar-index heuristic per spot path

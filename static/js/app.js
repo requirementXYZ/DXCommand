@@ -13,7 +13,7 @@ const state = {
 const bus = new Bus();
 const bandmap = new BandMap($("bandmap"), (spot) => tuneSpot(spot));
 const worldmap = new WorldMap($("worldmap"), (s) => tuneSpot(s));
-new CwTrainer();
+const cwtrainer = new CwTrainer();
 
 /* ---------------- clock ---------------- */
 setInterval(() => {

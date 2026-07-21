@@ -179,19 +179,33 @@
   <div id="cw-box">
     <div id="cw-head">
       <h3>CW PILEUP TRAINER
-        <span class="info" data-tip="Practice pulling callsigns out of a pileup before you face the real one. Press START and 1-4 stations call you at once, each with its own pitch, speed and strength. Type a callsign you copied and press Enter — correct copies get a 'TU' and fresh callers; misses replay the pileup. AGN? repeats it any time. Runs entirely in your browser.">i</span></h3>
+        <span class="info" data-tip="Practice pulling callsigns out of a pileup before you face the real one. Press START and stations call you at once, each with its own pitch, speed and strength. Type a call + Enter; in 'call + serial' mode they then send 5NN and a serial to copy back — a full contest-style QSO. QSB adds fading, QRN static crashes, QRM a rude station sending over the pileup. 'auto (ramp)' grows the pileup as you get better. If you go quiet, they call again. Sessions are scored (QSOs, accuracy, best streak) with a local high-score table. Runs entirely in your browser.">i</span></h3>
       <span class="dim small">Morse Runner, reborn</span>
       <div class="grow"></div><button class="btn small-btn" id="cw-close">✕ close</button>
     </div>
     <div id="cw-controls">
-      <label>Stations <select id="cw-stations"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+      <label>Stations <select id="cw-stations"><option value="0">auto (ramp)</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
       <label>Speed <select id="cw-speed"><option value="22">22-26 wpm</option><option value="28" selected>28-32 wpm</option><option value="34">34-38 wpm</option></select></label>
+      <label>Mode <select id="cw-mode"><option value="call">calls only</option><option value="exch" selected>call + serial</option></select></label>
       <button class="btn" id="cw-start">▶ START</button>
       <button class="btn" id="cw-repeat" disabled>AGN?</button>
     </div>
-    <div id="cw-score"><span>Copied <b id="cw-ok">0</b></span><span>Missed <b id="cw-bad">0</b></span><span>Streak <b id="cw-streak">0</b></span></div>
+    <div id="cw-controls2">
+      <label class="cw-chk"><input type="checkbox" id="cw-qsb"> QSB <span class="dim">(fading)</span></label>
+      <label class="cw-chk"><input type="checkbox" id="cw-qrn"> QRN <span class="dim">(static)</span></label>
+      <label class="cw-chk"><input type="checkbox" id="cw-qrm"> QRM <span class="dim">(interference)</span></label>
+    </div>
+    <div id="cw-score">
+      <span>QSOs <b id="cw-qsos">0</b></span>
+      <span>Copied <b id="cw-ok">0</b></span>
+      <span>Missed <b id="cw-bad">0</b></span>
+      <span>Exch err <b id="cw-exch-err">0</b></span>
+      <span>Streak <b id="cw-streak">0</b></span>
+      <span class="dim" id="cw-depth"></span>
+    </div>
     <input id="cw-input" placeholder="type the callsign you hear + Enter" autocomplete="off" spellcheck="false" disabled>
     <div id="cw-log" class="small"></div>
+    <div id="cw-best" class="small"></div>
   </div>
 </div>
 

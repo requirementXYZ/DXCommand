@@ -21,7 +21,7 @@ dashboard that talks to **any radio supported by OmniRig**.
 | NCDXF beacons | Live 18-beacon schedule clock; click to listen (Faros heritage) |
 | Solar data | SFI / SSN / A / K / X-ray + band conditions (hamqsl.com) |
 | Spot history | SQLite persistence — spots survive restarts and feed the activity timelines (7-day retention) |
-| CW Pileup Trainer | Morse Runner-style multi-station pileup in the browser (Web Audio, works offline) |
+| CW Pileup Trainer | Morse Runner-style pileups in the browser: full QSOs with **5NN + serial exchange copying**, QSB/QRN/QRM realism, auto-ramping pileup depth, session scoring + local high-score table (Web Audio, works offline) |
 | **Demo mode** | Full simulation of rig + cluster + WSJT-X — try everything with **no radio and no internet** |
 
 ---

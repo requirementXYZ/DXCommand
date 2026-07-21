@@ -493,4 +493,14 @@ async def api_worldmap():
     return JSONResponse({"error": "offline"}, status_code=404)
 
 
+@app.middleware("http")
+async def no_stale_assets(request: Request, call_next):
+    """Force revalidation of JS/CSS/HTML so upgrades never run mixed cached
+    frontend files against a newer backend (localhost app: cost is nil)."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
