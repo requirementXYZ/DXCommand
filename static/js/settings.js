@@ -42,7 +42,7 @@ const Settings = {
     const rigSel = $("set-rig").value;
     const body = {
       callsign: $("set-call").value.trim() || "N0CALL",
-      grid: $("set-grid").value.trim() || "FN31pr",
+      grid: $("set-grid").value.trim() || "IO95rj",
       rig: {
         backend: rigSel === "simulator" ? "simulator" : "omnirig",
         rig_number: rigSel === "omnirig2" ? 2 : 1,

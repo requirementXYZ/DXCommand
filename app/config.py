@@ -23,7 +23,7 @@ CONFIG_PATH = ROOT / "config.json"
 
 DEFAULTS: dict = {
     "callsign": "N0CALL",
-    "grid": "FN31pr",
+    "grid": "IO95rj",
     "port": 8073,
     "demo_mode": False,
     "rig": {"backend": "omnirig", "rig_number": 1, "poll_ms": 300},

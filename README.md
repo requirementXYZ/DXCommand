@@ -120,7 +120,7 @@ Anything off? Note the step number and send back console output from the black w
 ```jsonc
 {
   "callsign": "N0CALL",          // used for cluster login
-  "grid": "FN31pr",              // your Maidenhead locator (azimuth/distance/map)
+  "grid": "IO95rj",              // your Maidenhead locator (azimuth/distance/map)
   "port": 8073,                  // web UI port
   "demo_mode": false,            // true = all simulators (or use run_demo.bat)
   "rig":     { "backend": "omnirig", "rig_number": 1, "poll_ms": 300 },

@@ -417,7 +417,7 @@ async def api_config_set(req: Request):
         patch["callsign"] = str(patch["callsign"]).upper().strip() or "N0CALL"
     if "grid" in patch and not re.fullmatch(
             r"[A-Ra-r]{2}\d{2}([A-Xa-x]{2})?", str(patch["grid"]).strip()):
-        return JSONResponse({"ok": False, "error": "grid must look like FN31 or FN31pr"},
+        return JSONResponse({"ok": False, "error": "grid must look like IO95 or IO95rj"},
                             status_code=400)
     # Only service-affecting keys warrant restarting connections; alert or
     # log-sync tweaks must not drop the cluster/rig/WSJT-X links.

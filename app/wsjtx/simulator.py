@@ -75,6 +75,6 @@ class WsjtxSimulator:
                 self.on_status(Status(
                     client_id=client, dial_freq=14_090_000, mode="FT8",
                     dx_call=FOX, decoding=False, de_call=self.my_call,
-                    de_grid="FN31", dx_grid="JD59"))
+                    de_grid="IO95", dx_grid="JD59"))
             except asyncio.CancelledError:
                 return
