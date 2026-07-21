@@ -330,6 +330,25 @@ td.heard.home { color: var(--green); font-weight: 700; }
 .tl-hours { display: flex; gap: 2px; margin-left: 42px; color: var(--dim); }
 .tl-hours span { flex: 1; text-align: center; }
 
+/* ---------- DXCC table ---------- */
+#dxcc-overlay { position: fixed; inset: 0; background: rgba(4, 8, 12, .82); display: flex; align-items: center; justify-content: center; z-index: 66; }
+#dxcc-box { width: 760px; max-width: 96vw; height: 82vh; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; }
+#dxcc-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+#dxcc-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+#dxcc-search { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; color: var(--text); padding: 4px 8px; width: 150px; }
+.cgreen { color: var(--green); }
+#dxcc-table-wrap { flex: 1; overflow-y: auto; min-height: 0; border: 1px solid var(--line); border-radius: 6px; }
+#dxcc-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+#dxcc-table th { position: sticky; top: 0; background: var(--bg2); color: var(--dim); font-size: 10px; letter-spacing: .5px; padding: 5px 4px; text-align: center; border-bottom: 1px solid var(--line); z-index: 2; }
+#dxcc-table th:first-child { text-align: left; padding-left: 8px; }
+#dxcc-table td { padding: 3px 4px; text-align: center; border-bottom: 1px solid #16202b; }
+td.dx-ent { text-align: left; padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; color: var(--text); }
+td.dx-cell.dx-W { color: var(--nmode); }
+td.dx-cell.dx-C { color: var(--green); font-weight: 700; }
+td.dx-cell[title] { cursor: help; }
+td.dx-total { color: var(--accent); font-weight: 700; }
+tr.dx-totals td { border-top: 1px solid var(--line); color: var(--dim); background: var(--bg2); position: sticky; bottom: 0; }
+
 /* ---------- settings extras ---------- */
 .set-inline { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); cursor: pointer; }
 .set-field textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; color: var(--text); padding: 6px 8px; font-family: var(--mono); font-size: 12px; resize: vertical; }

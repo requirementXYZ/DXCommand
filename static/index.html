@@ -23,6 +23,7 @@
     <b>K</b><span id="k-idx">--</span>
   </div>
   <div class="grow"></div>
+  <button class="btn" id="btn-dxcc" title="Your DXCC standings: entities × bands worked/confirmed">☑&nbsp;DXCC</button>
   <button class="btn" id="btn-help" title="Quick start guide">?&nbsp;HELP</button>
   <button class="btn" id="btn-settings" title="Station setup: switch demo / OmniRig, cluster, WSJT-X">⚙&nbsp;SETUP</button>
   <button class="btn" id="btn-cw-trainer" title="CW pileup trainer (Morse Runner heritage)">CW&nbsp;TRAINER</button>
@@ -209,6 +210,32 @@
   </div>
 </div>
 
+<!-- DXCC worked-by-band table overlay -->
+<div id="dxcc-overlay" hidden>
+  <div id="dxcc-box">
+    <div id="dxcc-head">
+      <h3>DXCC — WORKED BY BAND</h3>
+      <span class="dim small" id="dxcc-stats"></span>
+      <div class="grow"></div>
+      <button class="btn small-btn" id="dxcc-close">✕ close</button>
+    </div>
+    <div id="dxcc-filters">
+      <div class="fgroup" id="dxcc-modes">
+        <button class="fbtn active" data-mode="ALL">All modes</button>
+        <button class="fbtn mode-cw" data-mode="CW">CW</button>
+        <button class="fbtn mode-ft8" data-mode="FT8">FT8</button>
+        <button class="fbtn mode-ft4" data-mode="FT4">FT4</button>
+        <button class="fbtn" data-mode="SSB">SSB</button>
+      </div>
+      <input id="dxcc-search" placeholder="filter entity…" spellcheck="false">
+      <span class="small dim">✓ worked · <span class="cgreen">✓✓ confirmed</span> · hover a cell for modes</span>
+    </div>
+    <div id="dxcc-table-wrap">
+      <table id="dxcc-table"></table>
+    </div>
+  </div>
+</div>
+
 <!-- DXpedition slot matrix overlay -->
 <div id="matrix-overlay" hidden>
   <div id="matrix-box">
@@ -254,7 +281,8 @@
         <li><b>Click a spot</b> in the table or band map. The rig tunes, the mode is set, and if
             the comment says <code>UP 2</code> the TX split is set too. The world map draws the path.</li>
         <li><b>Import your log</b> (⬆ IMPORT ADIF, top right). Now the red/orange/yellow ★ flags mean
-            <i>you actually need that one</i>: new DXCC / new band / new mode.</li>
+            <i>you actually need that one</i>: new DXCC / new band / new mode — and the
+            ☑ DXCC button shows your full standings as an entities × bands table.</li>
         <li><b>Watch your target:</b> click a DXpedition in the left panel (or add a call in
             WATCH LIST). You'll get an alert whenever it appears — on any mode.</li>
         <li><b>Go live:</b> open ⚙ SETUP and switch the radio to OmniRig, spots to a real
@@ -378,6 +406,7 @@
 <script src="js/settings.js"></script>
 <script src="js/alerts.js"></script>
 <script src="js/matrix.js"></script>
+<script src="js/dxcctable.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

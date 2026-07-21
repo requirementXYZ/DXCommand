@@ -15,6 +15,7 @@ dashboard that talks to **any radio supported by OmniRig**.
 | Band map | Vertical ladder per band, CW/FT8 segments shaded, rig cursor, click to QSY |
 | **Slot matrix** | Click a DXpedition → band × mode grid of needed / worked / confirmed vs where it's been active, 24 h activity timeline, click-to-tune (Club Log style) |
 | Needed DXCC | ADIF import **with auto-sync**: watched log files re-import on change; QSL/LoTW fields mark slots **confirmed** |
+| **DXCC table** | ☑ DXCC button: award-chart view of your standings — entities × bands, ✓ worked / ✓✓ confirmed, per-mode tooltips, mode filter, search, band totals |
 | WSJT-X | Live decode mirror with DXCC + needed colouring; double-click a decode → WSJT-X starts calling |
 | Gray line | World map with live solar terminator, clickable markers, **time scrubber** (where's the gray line at 0300Z?), great-circle path + azimuth |
 | Band openings | Per-band strip: spot rate + active DX continents in the last 30 min |

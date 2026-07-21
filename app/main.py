@@ -351,6 +351,13 @@ async def api_alerts():
     return list(alert_engine.log)
 
 
+@app.get("/api/worked")
+async def api_worked():
+    """Full worked/confirmed state for the DXCC table view."""
+    return {"bands": MATRIX_BANDS, "modes": MATRIX_MODES,
+            "entities": tracker.worked, "stats": tracker.stats()}
+
+
 @app.get("/api/matrix")
 async def api_matrix(call: str):
     call = call.upper().strip()
